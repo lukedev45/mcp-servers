@@ -1,7 +1,13 @@
 """Test configuration and fixtures for Qiskit IBM Transpiler MCP Server tests."""
 
 import pytest
-from unittest.mock import MagicMock, AsyncMock
+from unittest.mock import MagicMock, AsyncMock, create_autospec
+from qiskit_ibm_runtime import QiskitRuntimeService
+import os
+
+from qiskit_ibm_transpiler_mcp_server.qiskit_runtime_service_provider import (
+    QiskitRuntimeServiceProvider,
+)
 
 
 @pytest.fixture
@@ -260,3 +266,66 @@ def mock_ai_pauli_network_synthesis_failure(mocker):
     mock_pauli_network_instance = MagicMock()
     mock_pauli_network_class.return_value = mock_pauli_network_instance
     return mock_pauli_network_instance
+
+
+@pytest.fixture
+def mock_runtime_service():
+    """Mock QiskitRuntimeService for testing."""
+    mock_service = create_autospec(spec=QiskitRuntimeService)
+    mock_service._channel = "ibm_quantum_platform"
+
+    # Mock backends
+    mock_backend1 = MagicMock()
+    mock_backend1.name = "ibmq_qasm_simulator"
+    mock_backend1.num_qubits = 32
+    mock_backend1.simulator = True
+    mock_backend1.status.return_value = MagicMock(
+        operational=True, pending_jobs=0, status_msg="active"
+    )
+
+    mock_backend2 = MagicMock()
+    mock_backend2.name = "ibm_brisbane"
+    mock_backend2.num_qubits = 127
+    mock_backend2.simulator = False
+    mock_backend2.status.return_value = MagicMock(
+        operational=True, pending_jobs=5, status_msg="active"
+    )
+
+    mock_service.backends.return_value = [mock_backend1, mock_backend2]
+    mock_service.backend.return_value = mock_backend2
+
+    # Mock jobs
+    mock_job = MagicMock()
+    mock_job.job_id.return_value = "job_123"
+    mock_job.status.return_value = "DONE"
+    mock_job.creation_date = "2024-01-01T10:00:00Z"
+    mock_job.backend.return_value = mock_backend2
+    mock_job.tags = ["test"]
+    mock_job.error_message.return_value = None
+    mock_job.cancel.return_value = None
+
+    mock_service.jobs.return_value = [mock_job]
+    mock_service.job.return_value = mock_job
+
+    return mock_service
+
+
+@pytest.fixture
+def mock_env_vars(mocker):
+    """Mock environment variables for testing."""
+    env_mock = mocker.patch.dict(
+        os.environ,
+        {
+            "QISKIT_IBM_TOKEN": "test_token_12345",
+            "QISKIT_IBM_CHANNEL": "ibm_quantum_platform",
+        },
+    )
+    yield env_mock
+
+
+@pytest.fixture(autouse=True)
+def reset_singleton():
+    """Automatically reset singleton instance after each test"""
+    QiskitRuntimeServiceProvider._instance = None
+    yield
+    QiskitRuntimeServiceProvider._instance = None

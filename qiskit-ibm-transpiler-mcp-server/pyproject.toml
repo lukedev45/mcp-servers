@@ -15,7 +15,7 @@ keywords = ["quantum", "qiskit", "ibm", "mcp", "ai", "quantum-computing", "trans
 [project.urls]
 Homepage = "https://github.com/AI4quantum/qiskit-mcp-servers"
 Repository = "https://github.com/AI4quantum/qiskit-mcp-servers"
-Documentation = "https://github.com/AI4quantum/qiskit-mcp-servers/tree/main/qiskit-ibm-runtime-mcp-server#readme"
+Documentation = "https://github.com/AI4quantum/qiskit-mcp-servers/tree/main/qiskit-ibm-transpiler-mcp-server#readme"
 "Bug Tracker" = "https://github.com/AI4quantum/qiskit-mcp-servers/issues"
 
 [dependency-groups]

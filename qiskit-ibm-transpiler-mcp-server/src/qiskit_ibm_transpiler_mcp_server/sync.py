@@ -5,7 +5,7 @@ frameworks that don't support async operations (like DSPy).
 """
 
 import asyncio  # type: ignore[import-untyped]
-from typing import Any, Dict, Literal
+from typing import Any, Literal
 from qiskit_ibm_transpiler_mcp_server.qta import (
     ai_routing,
     ai_clifford_synthesis,
@@ -14,16 +14,11 @@ from qiskit_ibm_transpiler_mcp_server.qta import (
     ai_pauli_network_synthesis,
 )
 
-from qiskit_ibm_transpiler_mcp_server.ibm_runtime import (
-    get_backend_service,
-    least_busy_backend,
-    get_job_status,
-    cancel_job,
-    list_my_jobs,
-    get_backend_properties,
-    list_backends,
-    setup_ibm_quantum_account,
-)
+from qiskit_ibm_transpiler_mcp_server.utils import setup_ibm_quantum_account
+
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Apply nest_asyncio to allow running async code in environments with existing event loops
 try:
@@ -55,8 +50,8 @@ def _run_async(coro):
 
 
 def setup_ibm_quantum_account_sync(
-    token: str | None = "", channel: str = "ibm_quantum_platform"
-) -> Dict[str, Any]:
+    token: str = "", channel: str = "ibm_quantum_platform"
+) -> dict[str, Any]:
     """Set up IBM Quantum account with credentials.
 
     Synchronous version of setup_ibm_quantum_account.
@@ -71,95 +66,6 @@ def setup_ibm_quantum_account_sync(
     return _run_async(setup_ibm_quantum_account(token if token else None, channel))
 
 
-def list_backends_sync() -> Dict[str, Any]:
-    """List available IBM Quantum backends.
-
-    Synchronous version of list_backends.
-
-    Returns:
-        List of backends with their properties
-    """
-    return _run_async(list_backends())
-
-
-def get_backend_service_sync(backend_name: str) -> Dict[str, Any]:
-    """
-    Get the required backend.
-
-    Synchronous version of get_backend_service
-    Returns:
-        Backend service
-    """
-    return _run_async(get_backend_service(**locals()))
-
-
-def get_backend_properties_sync(backend_name: str) -> Dict[str, Any]:
-    """Get detailed properties of a specific backend.
-
-    Synchronous version of get_backend_properties.
-
-    Args:
-        backend_name: Name of the backend
-
-    Returns:
-        Backend properties and capabilities
-    """
-    return _run_async(get_backend_properties(backend_name))
-
-
-def least_busy_backend_sync() -> Dict[str, Any]:
-    """
-    Find the least busy operational backend.
-
-    Synchronous version of least_busy_backend
-    Returns:
-        Information about the least busy backend
-    """
-    return _run_async(least_busy_backend())
-
-
-def list_my_jobs_sync(limit: int = 10) -> Dict[str, Any]:
-    """List user's recent jobs.
-
-    Synchronous version of list_my_jobs.
-
-    Args:
-        limit: Maximum number of jobs to retrieve
-
-    Returns:
-        List of jobs with their information
-    """
-    return _run_async(list_my_jobs(limit))
-
-
-def get_job_status_sync(job_id: str) -> Dict[str, Any]:
-    """Get status of a specific job.
-
-    Synchronous version of get_job_status.
-
-    Args:
-        job_id: ID of the job
-
-    Returns:
-        Job status information
-    """
-    return _run_async(get_job_status(job_id))
-
-
-def cancel_job_sync(job_id: str) -> Dict[str, Any]:
-    """Cancel a specific job.
-
-    Synchronous version of cancel_job.
-
-    Args:
-        job_id: ID of the job to cancel
-
-    Returns:
-        Cancellation status
-    """
-    return _run_async(cancel_job(job_id))
-
-
 def ai_routing_sync(
     circuit_qasm: str,
     backend_name: str,
@@ -171,7 +77,7 @@ def ai_routing_sync(
     | list[Literal["n_cnots", "n_gates", "cnot_layers", "layers", "noise"]]
     | None = None,
     local_mode: bool = True,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Route input quantum circuit. It inserts SWAP operations on a circuit to make two-qubits operations compatible with a given coupling map that restricts the pair of qubits on which operations can be applied.
     It should be used as an initial step before any other AI synthesis routine.
@@ -197,7 +103,7 @@ def ai_clifford_synthesis_sync(
     backend_name: str,
     replace_only_if_better: bool = True,
     local_mode: bool = True,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Synthesis for Clifford circuits (blocks of H, S, and CX gates) from the given QASM string.. Currently, up to nine qubit blocks.
 
@@ -216,7 +122,7 @@ def ai_linear_function_synthesis_sync(
     backend_name: str,
     replace_only_if_better: bool = True,
     local_mode: bool = True,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Synthesis for Linear Function circuits (blocks of CX and SWAP gates). Currently, up to nine qubit blocks.
 
@@ -235,7 +141,7 @@ def ai_permutation_synthesis_sync(
     backend_name: str,
     replace_only_if_better: bool = True,
     local_mode: bool = True,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Synthesis for Permutation circuits (blocks of SWAP gates). Currently available for 65, 33, and 27 qubit blocks.
 
@@ -254,7 +160,7 @@ def ai_pauli_network_synthesis_sync(
     backend_name: str,
     replace_only_if_better: bool = True,
     local_mode: bool = True,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Synthesis for Pauli Network circuits (blocks of H, S, SX, CX, RX, RY and RZ gates). Currently up to six qubit blocks.
 
@@ -266,5 +172,3 @@ def ai_pauli_network_synthesis_sync(
         local_mode: determines where the AI Pauli Network synthesis pass runs. If False, AI Pauli Network synthesis runs remotely through the Qiskit Transpiler Service. If True, the package tries to run the pass in your local environment with a fallback to cloud mode if the required dependencies are not found
     """
     return _run_async(ai_pauli_network_synthesis(**locals()))
-
-

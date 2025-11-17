@@ -1,8 +1,7 @@
-from typing import Any, Dict, Literal
+from typing import Any, Literal
 
-from qiskit.qasm3 import loads  # type: ignore[import-untyped]
-
-from qiskit_ibm_transpiler_mcp_server.ibm_runtime import (
+from qiskit_ibm_transpiler_mcp_server.utils import (
+    load_qasm_circuit,
     get_backend_service,
 )
 
@@ -21,23 +20,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def load_qasm_circuit(qasm_string: str) -> dict[str, Any]:
-    """
-    Load Qiskit QuantumCircuit from QASM3.0 string.
-    Args:
-        qasm_string: QASM3.0 string describing input circuit
-    """
-    try:
-        circuit = loads(qasm_string)
-        return {"status": "success", "circuit": circuit}
-    except Exception as e:
-        logger.error(f"Error in loading QuantumCircuit object from QASM3.0 string: {e}")
-        return {
-            "status": "error",
-            "message": "QASM3.0 string not valid. Cannot be loaded as QuantumCircuit.",
-        }
-
-
 async def ai_routing(
     circuit_qasm: str,
     backend_name: str,
@@ -49,7 +31,7 @@ async def ai_routing(
     | list[Literal["n_cnots", "n_gates", "cnot_layers", "layers", "noise"]]
     | None = None,
     local_mode: bool = True,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Route input quantum circuit. It inserts SWAP operations on a circuit to make two-qubits operations compatible with a given coupling map that restricts the pair of qubits on which operations can be applied.
     It should be used as an initial step before any other AI synthesis routine.
@@ -65,6 +47,11 @@ async def ai_routing(
         optimization_preferences: indicates what you want to reduce through optimization: number of cnot gates (n_cnots), number of gates (n_gates), number of cnots layers (cnot_layers), number of layers (layers), and/or noise (noise)
         local_mode: determines where the AIRouting pass runs. If False, AIRouting runs remotely through the Qiskit Transpiler Service. If True, the package tries to run the pass in your local environment with a fallback to cloud mode if the required dependencies are not found
     """
+    if not backend_name or not backend_name.strip():
+        return {
+            "status": "error",
+            "message": "backend is required and cannot be empty",
+        }
     try:
         logger.info("AI Routing pass")
         backend_service_coroutine = await get_backend_service(backend_name=backend_name)
@@ -104,7 +91,7 @@ async def ai_clifford_synthesis(
     backend_name: str,
     replace_only_if_better: bool = True,
     local_mode: bool = True,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Synthesis for Clifford circuits (blocks of H, S, and CX gates). Currently, up to nine qubit blocks.
 
@@ -157,7 +144,7 @@ async def ai_linear_function_synthesis(
     backend_name: str,
     replace_only_if_better: bool = True,
     local_mode: bool = True,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Synthesis for Linear Function circuits (blocks of CX and SWAP gates). Currently, up to nine qubit blocks.
 
@@ -209,7 +196,7 @@ async def ai_permutation_synthesis(
     backend_name: str,
     replace_only_if_better: bool = True,
     local_mode: bool = True,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Synthesis for Permutation circuits (blocks of SWAP gates). Currently available for 65, 33, and 27 qubit blocks.
 
@@ -261,9 +248,9 @@ async def ai_pauli_network_synthesis(
     backend_name: str,
     replace_only_if_better: bool = True,
     local_mode: bool = True,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
-    Synthesis for Pauli Network circuits (blocks of H, S, SX, CX, RX, RY and RZ gates). Currently up to six qubit blocks.
+    Synthesis for Pauli Network circuits (blocks of H, S, SX, CX, RX, RY and RZ gates). Currently, up to six qubit blocks.
 
     Args:
         circuit_qasm: quantum circuit as QASM string to be synthesized.

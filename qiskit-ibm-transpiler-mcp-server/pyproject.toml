@@ -1,32 +1,29 @@
 [project]
 name = "qiskit-ibm-transpiler-mcp-server"
 version = "0.1.0"
-description = "Add your description here"
+description = "MCP server for AI Transpiler IBM Quantum services through local and Qiskit IBM Runtime executions"
 readme = "README.md"
 requires-python = ">=3.11"
+
 dependencies = [
-    "dspy>=2.6.13",
     "fastmcp>=2.12.4",
-    "langchain-ollama>=0.3.10",
-    "mcp-use>=1.2.8",
-    "pytest>=8.4.2",
-    "pytest-asyncio>=1.2.0",
-    "pytest-mock>=3.15.1",
     "qiskit-ibm-transpiler[ai-local-mode]>=0.14.3",
 ]
 
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+keywords = ["quantum", "qiskit", "ibm", "mcp", "ai", "quantum-computing", "transpiler"]
 
-[project.scripts]
-qiskit-ibm-runtime-mcp-server = "qiskit_ibm_transpiler_mcp_server:main"
+[project.urls]
+Homepage = "https://github.com/AI4quantum/qiskit-mcp-servers"
+Repository = "https://github.com/AI4quantum/qiskit-mcp-servers"
+Documentation = "https://github.com/AI4quantum/qiskit-mcp-servers/tree/main/qiskit-ibm-runtime-mcp-server#readme"
+"Bug Tracker" = "https://github.com/AI4quantum/qiskit-mcp-servers/issues"
 
 [dependency-groups]
 dev = [
     "ruff>=0.11.13",
-    "mypy>=1.15.0",
+    "mypy>=1.15.0"
 ]
+
 test = [
     "pytest>=8.4.2",
     "pytest-asyncio>=1.2.0",
@@ -34,14 +31,9 @@ test = [
     "pytest-cov>=4.1.0",
 ]
 
-[tool.ruff]
-exclude = [
-    "src/qiskit_ibm_transpiler_mcp_server/demo_client.py",
-    "src/qiskit_ibm_transpiler_mcp_server/demo_client_dspy.py"
-]
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.mypy]
-exclude = [
-    "src/qiskit_ibm_transpiler_mcp_server/demo_client.py",
-    "src/qiskit_ibm_transpiler_mcp_server/demo_client_dspy.py"
-]
+[project.scripts]
+qiskit-ibm-transpiler-mcp-server = "qiskit_ibm_transpiler_mcp_server:main"

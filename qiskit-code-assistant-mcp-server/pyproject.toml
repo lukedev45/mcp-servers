@@ -10,6 +10,25 @@ dependencies = [
     "httpx>=0.25.0",
     "nest-asyncio>=1.5.0",
 ]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.11.13",
+    "mypy>=1.15.0",
+    "pre-commit>=3.5.0",
+    "bandit[toml]>=1.7.0",
+]
+test = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-mock>=3.11.0",
+    "pytest-cov>=4.1.0",
+    "httpx>=0.25.0",
+    "respx>=0.20.0",
+]
+all = [
+    "qiskit-code-assistant-mcp-server[dev,test]",
+]
 [[project.authors]]
 name = "Quantum+AI Team. IBM Quantum"
 email = "Quantum.Plus.AI@ibm.com"
@@ -31,10 +50,10 @@ classifiers = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/AI4quantum/qiskit-mcp-servers"
-Repository = "https://github.com/AI4quantum/qiskit-mcp-servers"
-Documentation = "https://github.com/AI4quantum/qiskit-mcp-servers/tree/main/qiskit-code-assistant-mcp-server#readme"
-"Bug Tracker" = "https://github.com/AI4quantum/qiskit-mcp-servers/issues"
+Homepage = "https://github.com/Qiskit/mcp-servers"
+Repository = "https://github.com/Qiskit/mcp-servers"
+Documentation = "https://github.com/Qiskit/mcp-servers/tree/main/qiskit-code-assistant-mcp-server#readme"
+"Bug Tracker" = "https://github.com/Qiskit/mcp-servers/issues"
 
 [build-system]
 requires = ["hatchling"]
@@ -56,3 +75,8 @@ test = [
     "httpx>=0.25.0",
     "respx>=0.20.0",
 ]
+
+# Bandit security configuration
+[tool.bandit]
+skips = ["B101"]  # Skip assert_used check in tests
+exclude_dirs = ["tests", ".venv", "build", "dist"]

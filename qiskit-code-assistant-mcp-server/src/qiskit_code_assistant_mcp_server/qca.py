@@ -18,9 +18,33 @@ from qiskit_code_assistant_mcp_server.constants import (
     QCA_TOOL_MODEL_NAME,
     QCA_REQUEST_TIMEOUT,
 )
-from qiskit_code_assistant_mcp_server.utils import make_qca_request
+from qiskit_code_assistant_mcp_server.utils import make_qca_request, close_http_client
 
 logger = logging.getLogger(__name__)
+
+
+
+async def qca_list_models() -> Dict[str, Any]:
+    """List the available models from the Qiskit Code Assistant."""
+    try:
+        logger.info("Fetching available models from Qiskit Code Assistant")
+        url = f"{QCA_TOOL_API_BASE}/v1/models"
+        data = await make_qca_request(url, method="GET")
+
+        if "error" in data:
+            logger.error(f"Failed to list models: {data['error']}")
+            return {"status": "error", "message": data["error"]}
+
+        models = data.get("data", [])
+        if len(models) <= 0:
+            logger.warning("No models retrieved from Qiskit Code Assistant")
+            return {"status": "error", "message": "No models retrieved."}
+        else:
+            logger.info(f"Retrieved {len(models)} models from Qiskit Code Assistant")
+            return {"status": "success", "models": models}
+    except Exception as e:
+        logger.error(f"Exception in qca_list_models: {str(e)}")
+        return {"status": "error", "message": f"Failed to list models: {str(e)}"}
 
 
 def _select_available_model() -> str:
@@ -41,6 +65,8 @@ def _select_available_model() -> str:
         asyncio.set_event_loop(loop)
         try:
             models_result = loop.run_until_complete(qca_list_models())
+            # Close the HTTP client since it's attached to this loop which we are about to close
+            loop.run_until_complete(close_http_client())
         finally:
             loop.close()
         
@@ -82,29 +108,6 @@ def _select_available_model() -> str:
 # Select the model to use at module initialization
 _SELECTED_MODEL_NAME = _select_available_model()
 logger.info(f"Using model: {_SELECTED_MODEL_NAME}")
-
-
-async def qca_list_models() -> Dict[str, Any]:
-    """List the available models from the Qiskit Code Assistant."""
-    try:
-        logger.info("Fetching available models from Qiskit Code Assistant")
-        url = f"{QCA_TOOL_API_BASE}/v1/models"
-        data = await make_qca_request(url, method="GET")
-
-        if "error" in data:
-            logger.error(f"Failed to list models: {data['error']}")
-            return {"status": "error", "message": data["error"]}
-
-        models = data.get("data", [])
-        if len(models) <= 0:
-            logger.warning("No models retrieved from Qiskit Code Assistant")
-            return {"status": "error", "message": "No models retrieved."}
-        else:
-            logger.info(f"Retrieved {len(models)} models from Qiskit Code Assistant")
-            return {"status": "success", "models": models}
-    except Exception as e:
-        logger.error(f"Exception in qca_list_models: {str(e)}")
-        return {"status": "error", "message": f"Failed to list models: {str(e)}"}
 
 
 async def qca_get_model(model_id: str) -> Dict[str, Any]:

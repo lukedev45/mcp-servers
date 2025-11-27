@@ -3,7 +3,7 @@ name = "qiskit-mcp-servers"
 version = "0.1.0"
 description = "Model Context Protocol servers for IBM Quantum services and Qiskit"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.15"
 license = {text = "Apache-2.0"}
 authors = [
     {name = "Quantum+AI Team. IBM Quantum", email = "Quantum.Plus.AI@ibm.com"}
@@ -23,6 +23,22 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
+# Meta-package dependencies: installs all MCP servers
+dependencies = [
+    "qiskit-code-assistant-mcp-server>=0.1.0",
+    "qiskit-ibm-runtime-mcp-server>=0.1.0",
+]
+
+[project.optional-dependencies]
+# Install individual servers
+code-assistant = ["qiskit-code-assistant-mcp-server>=0.1.0"]
+runtime = ["qiskit-ibm-runtime-mcp-server>=0.1.0"]
+# Install all servers (same as default dependencies)
+all = [
+    "qiskit-code-assistant-mcp-server>=0.1.0",
+    "qiskit-ibm-runtime-mcp-server>=0.1.0",
+]
+
 [project.urls]
 Homepage = "https://github.com/Qiskit/mcp-servers"
 Repository = "https://github.com/Qiskit/mcp-servers"
@@ -32,6 +48,9 @@ Documentation = "https://github.com/Qiskit/mcp-servers#readme"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/qiskit_mcp_servers"]
 
 # Workspace configuration for monorepo
 [tool.uv.workspace]

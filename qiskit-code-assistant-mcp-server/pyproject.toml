@@ -3,7 +3,7 @@ name = "qiskit-code-assistant-mcp-server"
 version = "0.1.0"
 description = "MCP server for the Qiskit Code Assistant"
 readme = "README.md"
-requires-python = ">=3.10,<4.0"
+requires-python = ">=3.10,<3.15"
 dependencies = [
     "fastmcp>=2.8.1",
     "python-dotenv>=1.0.0",
@@ -45,6 +45,8 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Physics",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]

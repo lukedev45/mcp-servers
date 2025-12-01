@@ -25,6 +25,32 @@ from qiskit_code_assistant_mcp_server.constants import (
 )
 
 
+@pytest.fixture(autouse=True)
+async def reset_http_client():
+    """Reset the global HTTP client before and after each test.
+
+    This fixture ensures clean state between tests and properly closes
+    any async client that was created during the test.
+    """
+    import qiskit_code_assistant_mcp_server.utils as utils_module
+
+    # Reset before test - force clear without trying to close
+    # (might already be closed or in invalid state)
+    utils_module._client = None
+
+    yield
+
+    # Reset after test - properly close if still open
+    if utils_module._client is not None:
+        try:
+            if not utils_module._client.is_closed:
+                await utils_module._client.aclose()
+        except Exception:
+            pass  # Ignore errors during cleanup
+        finally:
+            utils_module._client = None
+
+
 @pytest.fixture
 def mock_env_vars():
     """Mock environment variables for testing."""

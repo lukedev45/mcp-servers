@@ -131,49 +131,67 @@ class TestGetErrorMessage:
 class TestHTTPClient:
     """Test HTTP client management."""
 
+    @pytest.fixture
+    def mock_async_client(self):
+        """Create a mock AsyncClient that doesn't require async context."""
+        mock_client = Mock(spec=httpx.AsyncClient)
+        mock_client.is_closed = False
+
+        async def mock_aclose():
+            mock_client.is_closed = True
+
+        mock_client.aclose = mock_aclose
+        return mock_client
+
     @pytest.mark.asyncio
-    async def test_get_http_client_creation(self, mock_env_vars):
+    async def test_get_http_client_creation(self, mock_env_vars, mock_async_client):
         """Test HTTP client creation."""
-        client = get_http_client()
-        assert isinstance(client, httpx.AsyncClient)
-        assert not client.is_closed
-
-        # Clean up
-        await close_http_client()
+        with patch.object(httpx, "AsyncClient", return_value=mock_async_client):
+            client = get_http_client()
+            assert client is mock_async_client
+            assert not client.is_closed
 
     @pytest.mark.asyncio
-    async def test_get_http_client_reuse(self, mock_env_vars):
+    async def test_get_http_client_reuse(self, mock_env_vars, mock_async_client):
         """Test HTTP client reuse."""
-        client1 = get_http_client()
-        client2 = get_http_client()
+        with patch.object(httpx, "AsyncClient", return_value=mock_async_client):
+            client1 = get_http_client()
+            client2 = get_http_client()
 
-        assert client1 is client2  # Same instance
-
-        # Clean up
-        await close_http_client()
+            assert client1 is client2  # Same instance
 
     @pytest.mark.asyncio
-    async def test_close_http_client(self, mock_env_vars):
+    async def test_close_http_client(self, mock_env_vars, mock_async_client):
         """Test HTTP client closure."""
-        client = get_http_client()
-        assert not client.is_closed
+        with patch.object(httpx, "AsyncClient", return_value=mock_async_client):
+            client = get_http_client()
+            assert not client.is_closed
 
-        await close_http_client()
-        assert client.is_closed
+            await close_http_client()
+            assert client.is_closed
 
     @pytest.mark.asyncio
     async def test_get_client_after_close(self, mock_env_vars):
         """Test getting client after closure creates new instance."""
-        client1 = get_http_client()
-        await close_http_client()
+        mock_client1 = Mock(spec=httpx.AsyncClient)
+        mock_client1.is_closed = False
 
-        client2 = get_http_client()
-        assert client1 is not client2
-        assert client1.is_closed
-        assert not client2.is_closed
+        async def mock_aclose1():
+            mock_client1.is_closed = True
 
-        # Clean up
-        await close_http_client()
+        mock_client1.aclose = mock_aclose1
+
+        mock_client2 = Mock(spec=httpx.AsyncClient)
+        mock_client2.is_closed = False
+
+        with patch.object(httpx, "AsyncClient", side_effect=[mock_client1, mock_client2]):
+            client1 = get_http_client()
+            await close_http_client()
+
+            client2 = get_http_client()
+            assert client1 is not client2
+            assert client1.is_closed
+            assert not client2.is_closed
 
 
 class TestMakeQCARequest:

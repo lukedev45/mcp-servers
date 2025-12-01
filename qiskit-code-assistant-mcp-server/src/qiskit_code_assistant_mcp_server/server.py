@@ -87,7 +87,7 @@ if __name__ == "__main__":
     logger.info("Starting Qiskit Code Assistant MCP Server")
 
     # Register cleanup function
-    def cleanup():
+    def cleanup() -> None:
         import asyncio
 
         try:

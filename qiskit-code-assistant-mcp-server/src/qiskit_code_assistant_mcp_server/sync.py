@@ -17,7 +17,8 @@ frameworks that don't support async operations (like DSPy).
 """
 
 import asyncio
-from typing import Any
+from collections.abc import Coroutine
+from typing import Any, TypeVar
 
 from qiskit_code_assistant_mcp_server.qca import (
     qca_accept_completion,
@@ -33,14 +34,17 @@ from qiskit_code_assistant_mcp_server.qca import (
 
 # Apply nest_asyncio to allow running async code in environments with existing event loops
 try:
-    import nest_asyncio  # type: ignore[import-untyped]
+    import nest_asyncio
 
     nest_asyncio.apply()
 except ImportError:
     pass
 
 
-def _run_async(coro):
+T = TypeVar("T")
+
+
+def _run_async(coro: Coroutine[Any, Any, T]) -> T:
     """Helper to run async functions synchronously.
 
     This handles both cases:

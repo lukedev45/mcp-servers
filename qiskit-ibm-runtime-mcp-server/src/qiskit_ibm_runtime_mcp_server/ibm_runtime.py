@@ -16,10 +16,10 @@ import logging
 import os
 from typing import Any
 
-from qiskit_ibm_runtime import QiskitRuntimeService  # type: ignore[import-untyped]
+from qiskit_ibm_runtime import QiskitRuntimeService
 
 
-def least_busy(backends):
+def least_busy(backends: list[Any]) -> Any | None:
     """Find the least busy backend from a list of backends."""
     if not backends:
         return None
@@ -241,6 +241,11 @@ async def least_busy_backend() -> dict[str, Any]:
             }
 
         backend = least_busy(backends)
+        if backend is None:
+            return {
+                "status": "error",
+                "message": "Could not find a suitable backend",
+            }
         status = backend.status()
 
         return {

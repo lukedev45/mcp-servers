@@ -26,6 +26,7 @@ Dependencies:
 """
 
 import logging
+from typing import Any
 
 from fastmcp import FastMCP
 
@@ -51,7 +52,9 @@ mcp = FastMCP("Qiskit IBM Runtime")
 
 # Tools
 @mcp.tool()
-async def setup_ibm_quantum_account_tool(token: str = "", channel: str = "ibm_quantum_platform"):
+async def setup_ibm_quantum_account_tool(
+    token: str = "", channel: str = "ibm_quantum_platform"
+) -> dict[str, Any]:
     """Set up IBM Quantum account with credentials.
 
     If token is not provided, will attempt to use IBM_QUANTUM_TOKEN environment variable
@@ -61,37 +64,37 @@ async def setup_ibm_quantum_account_tool(token: str = "", channel: str = "ibm_qu
 
 
 @mcp.tool()
-async def list_backends_tool():
+async def list_backends_tool() -> dict[str, Any]:
     """List available IBM Quantum backends."""
     return await list_backends()
 
 
 @mcp.tool()
-async def least_busy_backend_tool():
+async def least_busy_backend_tool() -> dict[str, Any]:
     """Find the least busy operational backend."""
     return await least_busy_backend()
 
 
 @mcp.tool()
-async def get_backend_properties_tool(backend_name: str):
+async def get_backend_properties_tool(backend_name: str) -> dict[str, Any]:
     """Get detailed properties of a specific backend."""
     return await get_backend_properties(backend_name)
 
 
 @mcp.tool()
-async def list_my_jobs_tool(limit: int = 10):
+async def list_my_jobs_tool(limit: int = 10) -> dict[str, Any]:
     """List user's recent jobs."""
     return await list_my_jobs(limit)
 
 
 @mcp.tool()
-async def get_job_status_tool(job_id: str):
+async def get_job_status_tool(job_id: str) -> dict[str, Any]:
     """Get status of a specific job."""
     return await get_job_status(job_id)
 
 
 @mcp.tool()
-async def cancel_job_tool(job_id: str):
+async def cancel_job_tool(job_id: str) -> dict[str, Any]:
     """Cancel a specific job."""
     return await cancel_job(job_id)
 
@@ -103,7 +106,7 @@ async def get_service_status_resource() -> str:
     return await get_service_status()
 
 
-def main():
+def main() -> None:
     """Run the server."""
     mcp.run()
 

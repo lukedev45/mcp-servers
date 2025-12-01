@@ -23,7 +23,7 @@ from qiskit_code_assistant_mcp_server.constants import (
 )
 
 
-def _get_token_from_system():
+def _get_token_from_system() -> str:
     token = os.getenv("QISKIT_IBM_TOKEN")
 
     if not token:
@@ -70,7 +70,7 @@ def get_http_client() -> httpx.AsyncClient:
     return _client
 
 
-async def close_http_client():
+async def close_http_client() -> None:
     """Close the shared HTTP client."""
     global _client
     if _client is not None and not _client.is_closed:
@@ -113,7 +113,7 @@ async def make_qca_request(
         try:
             response = await client.request(method, url, params=params, json=body)
             response.raise_for_status()
-            return response.json()
+            return dict(response.json())
 
         except httpx.TimeoutException as e:
             last_exception = e

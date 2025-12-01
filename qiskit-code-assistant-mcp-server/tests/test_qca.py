@@ -278,4 +278,120 @@ class TestQCAServiceStatus:
             assert "Error" in result
 
 
+class TestModelSelection:
+    """Test _select_available_model function."""
+
+    def test_model_selection_default_available(self, mock_env_vars):
+        """Test that default model is selected when available."""
+        from qiskit_code_assistant_mcp_server.qca import _select_available_model
+        from qiskit_code_assistant_mcp_server.constants import QCA_TOOL_MODEL_NAME
+
+        # Mock qca_list_models to return models including the default
+        with patch(
+            "qiskit_code_assistant_mcp_server.qca.qca_list_models"
+        ) as mock_list_models:
+            mock_list_models.return_value = {
+                "status": "success",
+                "models": [
+                    {"id": QCA_TOOL_MODEL_NAME, "name": "Default Model"},
+                    {"id": "another-model", "name": "Another Model"},
+                ],
+            }
+
+            result = _select_available_model()
+
+            assert result == QCA_TOOL_MODEL_NAME
+
+    def test_model_selection_default_unavailable(self, mock_env_vars):
+        """Test that first available model is selected when default is not available."""
+        from qiskit_code_assistant_mcp_server.qca import _select_available_model
+        from qiskit_code_assistant_mcp_server.constants import QCA_TOOL_MODEL_NAME
+
+        with patch(
+            "qiskit_code_assistant_mcp_server.qca.qca_list_models"
+        ) as mock_list_models:
+            # Return models that don't include the default
+            mock_list_models.return_value = {
+                "status": "success",
+                "models": [
+                    {"id": "granite-3.3-8b-qiskit", "name": "Granite 8B Qiskit"},
+                    {"id": "other-model", "name": "Other Model"},
+                ],
+            }
+
+            result = _select_available_model()
+
+            # Should select first available model since default is not in the list
+            assert result == "granite-3.3-8b-qiskit"
+            assert result != QCA_TOOL_MODEL_NAME
+
+    def test_model_selection_no_models_available(self, mock_env_vars):
+        """Test graceful handling when no models are available."""
+        from qiskit_code_assistant_mcp_server.qca import _select_available_model
+        from qiskit_code_assistant_mcp_server.constants import QCA_TOOL_MODEL_NAME
+
+        with patch(
+            "qiskit_code_assistant_mcp_server.qca.qca_list_models"
+        ) as mock_list_models:
+            mock_list_models.return_value = {"status": "success", "models": []}
+
+            result = _select_available_model()
+
+            # Should fallback to configured default
+            assert result == QCA_TOOL_MODEL_NAME
+
+    def test_model_selection_api_error(self, mock_env_vars):
+        """Test graceful handling when API call fails."""
+        from qiskit_code_assistant_mcp_server.qca import _select_available_model
+        from qiskit_code_assistant_mcp_server.constants import QCA_TOOL_MODEL_NAME
+
+        with patch(
+            "qiskit_code_assistant_mcp_server.qca.qca_list_models"
+        ) as mock_list_models:
+            mock_list_models.return_value = {
+                "status": "error",
+                "message": "Authentication failed",
+            }
+
+            result = _select_available_model()
+
+            # Should fallback to configured default
+            assert result == QCA_TOOL_MODEL_NAME
+
+    def test_model_selection_exception(self, mock_env_vars):
+        """Test graceful handling when an exception occurs."""
+        from qiskit_code_assistant_mcp_server.qca import _select_available_model
+        from qiskit_code_assistant_mcp_server.constants import QCA_TOOL_MODEL_NAME
+
+        with patch(
+            "qiskit_code_assistant_mcp_server.qca.qca_list_models"
+        ) as mock_list_models:
+            mock_list_models.side_effect = Exception("Network error")
+
+            result = _select_available_model()
+
+            # Should fallback to configured default
+            assert result == QCA_TOOL_MODEL_NAME
+
+    def test_model_selection_models_without_ids(self, mock_env_vars):
+        """Test handling of models without IDs."""
+        from qiskit_code_assistant_mcp_server.qca import _select_available_model
+
+        with patch(
+            "qiskit_code_assistant_mcp_server.qca.qca_list_models"
+        ) as mock_list_models:
+            mock_list_models.return_value = {
+                "status": "success",
+                "models": [
+                    {"name": "Model without ID"},  # Missing 'id' field
+                    {"id": "valid-model", "name": "Valid Model"},
+                ],
+            }
+
+            result = _select_available_model()
+
+            # Should skip models without IDs and select the valid one
+            assert result == "valid-model"
+
+
 # Assisted by watsonx Code Assistant

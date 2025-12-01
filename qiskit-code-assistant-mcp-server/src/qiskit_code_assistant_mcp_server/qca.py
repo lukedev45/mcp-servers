@@ -10,6 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+import asyncio
 import logging
 from typing import Any
 
@@ -18,7 +19,7 @@ from qiskit_code_assistant_mcp_server.constants import (
     QCA_TOOL_API_BASE,
     QCA_TOOL_MODEL_NAME,
 )
-from qiskit_code_assistant_mcp_server.utils import make_qca_request, close_http_client
+from qiskit_code_assistant_mcp_server.utils import close_http_client, make_qca_request
 
 
 logger = logging.getLogger(__name__)
@@ -57,8 +58,6 @@ def _select_available_model() -> str:
     Returns:
         The model name to use for completions
     """
-    import asyncio
-
     try:
         # Run the async qca_list_models function synchronously
         loop = asyncio.new_event_loop()
@@ -96,7 +95,7 @@ def _select_available_model() -> str:
             logger.error(f"Failed to fetch available models: {error_msg}")
 
     except Exception as e:
-        logger.error(f"Exception while selecting available model: {str(e)}")
+        logger.error(f"Exception while selecting available model: {e!s}")
 
     # Fallback to configured default if anything goes wrong
     logger.warning(

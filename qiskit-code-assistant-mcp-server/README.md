@@ -52,6 +52,29 @@ This project uses [uv](https://astral.sh/uv) for virtual environments and depend
    # Get your token from: https://cloud.quantum.ibm.com/
    ```
 
+## Configuration
+
+### Environment Variables
+
+The server can be configured using environment variables in your `.env` file:
+
+- `QISKIT_IBM_TOKEN` - Your IBM Quantum API token (required)
+- `QCA_TOOL_API_BASE` - Qiskit Code Assistant API base URL (default: `https://qiskit-code-assistant.quantum.ibm.com`)
+- `QCA_TOOL_MODEL_NAME` - Default model name (default: `mistral-small-3.2-24b-qiskit`)
+- `QCA_REQUEST_TIMEOUT` - Request timeout in seconds (default: `30.0`)
+- `QCA_MCP_DEBUG_LEVEL` - Logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL (default: `INFO`)
+
+### Model Selection
+
+The server includes an **automatic model availability guardrail** that:
+- Checks available models from the Qiskit Code Assistant service at startup
+- Uses the configured `QCA_TOOL_MODEL_NAME` if available
+- Automatically falls back to the first available model if the default is unavailable
+- Logs warnings when using a fallback model
+- Gracefully handles API errors by using the configured default
+
+This ensures the server can start and function even when the default model is temporarily unavailable.
+
 ## Quick Start
 
 ### Running the Server
@@ -159,6 +182,7 @@ uv run pytest tests/test_qca.py -v
 
 The test suite covers:
 - ✅ All QCA API interactions
+- ✅ Model selection and availability guardrail
 - ✅ Error handling and validation
 - ✅ HTTP client management
 - ✅ Configuration validation

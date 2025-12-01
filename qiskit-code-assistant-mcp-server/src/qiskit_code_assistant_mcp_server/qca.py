@@ -18,7 +18,11 @@ from qiskit_code_assistant_mcp_server.constants import (
     QCA_TOOL_MODEL_NAME,
     QCA_REQUEST_TIMEOUT,
 )
-from qiskit_code_assistant_mcp_server.utils import make_qca_request, with_sync, close_http_client
+from qiskit_code_assistant_mcp_server.utils import (
+    make_qca_request,
+    with_sync,
+    close_http_client,
+)
 
 logger = logging.getLogger(__name__)
 

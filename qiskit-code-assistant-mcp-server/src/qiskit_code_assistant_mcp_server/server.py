@@ -30,17 +30,17 @@ from qiskit_code_assistant_mcp_server.constants import (
     QCA_MCP_DEBUG_LEVEL,
     validate_configuration,
 )
-from qiskit_code_assistant_mcp_server.utils import close_http_client
 from qiskit_code_assistant_mcp_server.qca import (
     qca_accept_completion,
     qca_accept_model_disclaimer,
     qca_get_completion,
     qca_get_model,
-    qca_get_rag_completion,
     qca_get_model_disclaimer,
+    qca_get_rag_completion,
     qca_get_service_status,
     qca_list_models,
 )
+from qiskit_code_assistant_mcp_server.utils import close_http_client
 
 
 # Configure logging
@@ -87,7 +87,7 @@ if __name__ == "__main__":
     logger.info("Starting Qiskit Code Assistant MCP Server")
 
     # Register cleanup function
-    def cleanup():
+    def cleanup() -> None:
         import asyncio
 
         try:

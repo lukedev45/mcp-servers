@@ -74,18 +74,41 @@ unfixable = []
 dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [lint.per-file-ignores]
-# Ignore certain rules in test files
-"tests/**/*.py" = [
+# Ignore certain rules in test files (both servers)
+"**/tests/**/*.py" = [
     "PLR2004",  # Magic values are common in tests
     "S101",     # Use of assert
     "S105",     # Possible hardcoded password
     "S106",     # Possible hardcoded password
+    "PLC0415",  # Import outside top-level (common in test fixtures)
+    "PTH123",   # open() vs Path.open() (less critical in tests)
+    "SIM117",   # Nested with statements (sometimes clearer in tests)
 ]
 
 # Ignore import rules in __init__.py files
-"__init__.py" = [
+"**/__init__.py" = [
     "F401",  # Unused imports (re-exports)
     "F403",  # Star imports
+]
+
+# Ignore global variable and performance warnings in ibm_runtime.py (intentional design)
+"**/ibm_runtime.py" = [
+    "PLW0602",  # Global variable usage without assignment
+    "PLW0603",  # Global variable updates
+    "PERF203",  # Try-except in loop (necessary for error handling)
+]
+
+# Ignore specific patterns in utils.py (both servers)
+"**/utils.py" = [
+    "PLW0603",  # Global variable updates (HTTP client singleton pattern)
+    "PTH123",   # open() vs Path.open() (reading JSON credentials)
+    "PLC0415",  # Import inside function (asyncio for retry logic)
+    "PERF203",  # Try-except in loop (retry mechanism)
+]
+
+# Ignore specific patterns in server.py
+"**/server.py" = [
+    "PLC0415",  # Import inside cleanup function (asyncio)
 ]
 
 [lint.isort]

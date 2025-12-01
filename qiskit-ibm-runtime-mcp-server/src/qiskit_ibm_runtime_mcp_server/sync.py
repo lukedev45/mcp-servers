@@ -17,29 +17,34 @@ frameworks that don't support async operations (like DSPy).
 """
 
 import asyncio
-from typing import Any, Dict
+from collections.abc import Coroutine
+from typing import Any, TypeVar
 
 from qiskit_ibm_runtime_mcp_server.ibm_runtime import (
-    setup_ibm_quantum_account,
-    list_backends,
-    least_busy_backend,
-    get_backend_properties,
-    list_my_jobs,
-    get_job_status,
     cancel_job,
+    get_backend_properties,
+    get_job_status,
     get_service_status,
+    least_busy_backend,
+    list_backends,
+    list_my_jobs,
+    setup_ibm_quantum_account,
 )
+
 
 # Apply nest_asyncio to allow running async code in environments with existing event loops
 try:
-    import nest_asyncio  # type: ignore[import-untyped]
+    import nest_asyncio
 
     nest_asyncio.apply()
 except ImportError:
     pass
 
 
-def _run_async(coro):
+T = TypeVar("T")
+
+
+def _run_async(coro: Coroutine[Any, Any, T]) -> T:
     """Helper to run async functions synchronously.
 
     This handles both cases:
@@ -60,8 +65,9 @@ def _run_async(coro):
 
 
 def setup_ibm_quantum_account_sync(
-    token: str = "", channel: str = "ibm_quantum_platform"
-) -> Dict[str, Any]:
+    token: str = "",
+    channel: str = "ibm_quantum_platform",  # nosec B107
+) -> dict[str, Any]:
     """Set up IBM Quantum account with credentials.
 
     Synchronous version of setup_ibm_quantum_account.
@@ -76,7 +82,7 @@ def setup_ibm_quantum_account_sync(
     return _run_async(setup_ibm_quantum_account(token if token else None, channel))
 
 
-def list_backends_sync() -> Dict[str, Any]:
+def list_backends_sync() -> dict[str, Any]:
     """List available IBM Quantum backends.
 
     Synchronous version of list_backends.
@@ -87,7 +93,7 @@ def list_backends_sync() -> Dict[str, Any]:
     return _run_async(list_backends())
 
 
-def least_busy_backend_sync() -> Dict[str, Any]:
+def least_busy_backend_sync() -> dict[str, Any]:
     """Find the least busy operational backend.
 
     Synchronous version of least_busy_backend.
@@ -98,7 +104,7 @@ def least_busy_backend_sync() -> Dict[str, Any]:
     return _run_async(least_busy_backend())
 
 
-def get_backend_properties_sync(backend_name: str) -> Dict[str, Any]:
+def get_backend_properties_sync(backend_name: str) -> dict[str, Any]:
     """Get detailed properties of a specific backend.
 
     Synchronous version of get_backend_properties.
@@ -112,7 +118,7 @@ def get_backend_properties_sync(backend_name: str) -> Dict[str, Any]:
     return _run_async(get_backend_properties(backend_name))
 
 
-def list_my_jobs_sync(limit: int = 10) -> Dict[str, Any]:
+def list_my_jobs_sync(limit: int = 10) -> dict[str, Any]:
     """List user's recent jobs.
 
     Synchronous version of list_my_jobs.
@@ -126,7 +132,7 @@ def list_my_jobs_sync(limit: int = 10) -> Dict[str, Any]:
     return _run_async(list_my_jobs(limit))
 
 
-def get_job_status_sync(job_id: str) -> Dict[str, Any]:
+def get_job_status_sync(job_id: str) -> dict[str, Any]:
     """Get status of a specific job.
 
     Synchronous version of get_job_status.
@@ -140,7 +146,7 @@ def get_job_status_sync(job_id: str) -> Dict[str, Any]:
     return _run_async(get_job_status(job_id))
 
 
-def cancel_job_sync(job_id: str) -> Dict[str, Any]:
+def cancel_job_sync(job_id: str) -> dict[str, Any]:
     """Cancel a specific job.
 
     Synchronous version of cancel_job.

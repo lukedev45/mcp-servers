@@ -1692,6 +1692,7 @@ test = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "bandit", extra = ["toml"] },
     { name = "mypy" },
     { name = "ruff" },
 ]
@@ -1726,6 +1727,7 @@ provides-extras = ["dev", "test", "all"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "bandit", extras = ["toml"], specifier = ">=1.9.2" },
     { name = "mypy", specifier = ">=1.15.0" },
     { name = "ruff", specifier = ">=0.11.13" },
 ]
@@ -1797,6 +1799,7 @@ test = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "bandit", extra = ["toml"] },
     { name = "mypy" },
     { name = "ruff" },
 ]
@@ -1828,6 +1831,7 @@ provides-extras = ["dev", "test", "all"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "bandit", extras = ["toml"], specifier = ">=1.9.2" },
     { name = "mypy", specifier = ">=1.15.0" },
     { name = "ruff", specifier = ">=0.11.13" },
 ]
@@ -1869,6 +1873,20 @@ requires-dist = [
     { name = "qiskit-ibm-runtime-mcp-server", marker = "extra == 'runtime'", editable = "qiskit-ibm-runtime-mcp-server" },
 ]
 provides-extras = ["code-assistant", "runtime", "all"]
+
+[package.dev-dependencies]
+dev = [
+    { name = "mypy" },
+    { name = "ruff" },
+]
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "mypy", specifier = ">=1.18.2" },
+    { name = "ruff", specifier = ">=0.14.6" },
+]
 
 [[package]]
 name = "referencing"

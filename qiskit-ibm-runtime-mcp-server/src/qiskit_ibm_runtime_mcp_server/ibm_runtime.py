@@ -14,12 +14,12 @@
 
 import logging
 import os
-from typing import Any, Dict, Optional
+from typing import Any
 
-from qiskit_ibm_runtime import QiskitRuntimeService  # type: ignore[import-untyped]
+from qiskit_ibm_runtime import QiskitRuntimeService
 
 
-def least_busy(backends):
+def least_busy(backends: list[Any]) -> Any | None:
     """Find the least busy backend from a list of backends."""
     if not backends:
         return None
@@ -31,7 +31,7 @@ def least_busy(backends):
     return min(operational_backends, key=lambda b: b.status().pending_jobs)
 
 
-def get_token_from_env() -> Optional[str]:
+def get_token_from_env() -> str | None:
     """
     Get IBM Quantum token from environment variables.
 
@@ -51,11 +51,11 @@ def get_token_from_env() -> Optional[str]:
 logger = logging.getLogger(__name__)
 
 # Global service instance
-service: Optional[QiskitRuntimeService] = None
+service: QiskitRuntimeService | None = None
 
 
 def initialize_service(
-    token: Optional[str] = None, channel: str = "ibm_quantum_platform"
+    token: str | None = None, channel: str = "ibm_quantum_platform"
 ) -> QiskitRuntimeService:
     """
     Initialize the Qiskit IBM Runtime service.
@@ -118,8 +118,8 @@ def initialize_service(
 
 
 async def setup_ibm_quantum_account(
-    token: Optional[str] = None, channel: str = "ibm_quantum_platform"
-) -> Dict[str, Any]:
+    token: str | None = None, channel: str = "ibm_quantum_platform"
+) -> dict[str, Any]:
     """
     Set up IBM Quantum account with credentials.
 
@@ -165,10 +165,10 @@ async def setup_ibm_quantum_account(
         }
     except Exception as e:
         logger.error(f"Failed to set up IBM Quantum account: {e}")
-        return {"status": "error", "message": f"Failed to set up account: {str(e)}"}
+        return {"status": "error", "message": f"Failed to set up account: {e!s}"}
 
 
-async def list_backends() -> Dict[str, Any]:
+async def list_backends() -> dict[str, Any]:
     """
     List available IBM Quantum backends.
 
@@ -216,10 +216,10 @@ async def list_backends() -> Dict[str, Any]:
 
     except Exception as e:
         logger.error(f"Failed to list backends: {e}")
-        return {"status": "error", "message": f"Failed to list backends: {str(e)}"}
+        return {"status": "error", "message": f"Failed to list backends: {e!s}"}
 
 
-async def least_busy_backend() -> Dict[str, Any]:
+async def least_busy_backend() -> dict[str, Any]:
     """
     Find the least busy operational backend.
 
@@ -241,6 +241,11 @@ async def least_busy_backend() -> Dict[str, Any]:
             }
 
         backend = least_busy(backends)
+        if backend is None:
+            return {
+                "status": "error",
+                "message": "Could not find a suitable backend",
+            }
         status = backend.status()
 
         return {
@@ -256,11 +261,11 @@ async def least_busy_backend() -> Dict[str, Any]:
         logger.error(f"Failed to find least busy backend: {e}")
         return {
             "status": "error",
-            "message": f"Failed to find least busy backend: {str(e)}",
+            "message": f"Failed to find least busy backend: {e!s}",
         }
 
 
-async def get_backend_properties(backend_name: str) -> Dict[str, Any]:
+async def get_backend_properties(backend_name: str) -> dict[str, Any]:
     """
     Get detailed properties of a specific backend.
 
@@ -312,11 +317,11 @@ async def get_backend_properties(backend_name: str) -> Dict[str, Any]:
         logger.error(f"Failed to get backend properties: {e}")
         return {
             "status": "error",
-            "message": f"Failed to get backend properties: {str(e)}",
+            "message": f"Failed to get backend properties: {e!s}",
         }
 
 
-async def list_my_jobs(limit: int = 10) -> Dict[str, Any]:
+async def list_my_jobs(limit: int = 10) -> dict[str, Any]:
     """
     List user's recent jobs.
 
@@ -354,10 +359,10 @@ async def list_my_jobs(limit: int = 10) -> Dict[str, Any]:
 
     except Exception as e:
         logger.error(f"Failed to list jobs: {e}")
-        return {"status": "error", "message": f"Failed to list jobs: {str(e)}"}
+        return {"status": "error", "message": f"Failed to list jobs: {e!s}"}
 
 
-async def get_job_status(job_id: str) -> Dict[str, Any]:
+async def get_job_status(job_id: str) -> dict[str, Any]:
     """
     Get status of a specific job.
 
@@ -392,10 +397,10 @@ async def get_job_status(job_id: str) -> Dict[str, Any]:
 
     except Exception as e:
         logger.error(f"Failed to get job status: {e}")
-        return {"status": "error", "message": f"Failed to get job status: {str(e)}"}
+        return {"status": "error", "message": f"Failed to get job status: {e!s}"}
 
 
-async def cancel_job(job_id: str) -> Dict[str, Any]:
+async def cancel_job(job_id: str) -> dict[str, Any]:
     """
     Cancel a specific job.
 
@@ -424,7 +429,7 @@ async def cancel_job(job_id: str) -> Dict[str, Any]:
         }
     except Exception as e:
         logger.error(f"Failed to cancel job: {e}")
-        return {"status": "error", "message": f"Failed to cancel job: {str(e)}"}
+        return {"status": "error", "message": f"Failed to cancel job: {e!s}"}
 
 
 async def get_service_status() -> str:

@@ -12,13 +12,14 @@
 
 """Integration tests for Qiskit Code Assistant MCP Server."""
 
-import pytest
 from unittest.mock import patch
+
 import httpx
+import pytest
 import respx
 
-from qiskit_code_assistant_mcp_server.server import mcp
 from qiskit_code_assistant_mcp_server.constants import QCA_TOOL_API_BASE
+from qiskit_code_assistant_mcp_server.server import mcp
 
 
 class TestMCPServerIntegration:
@@ -41,6 +42,7 @@ class TestMCPServerIntegration:
 
             # Reimport server module to trigger validation
             import importlib
+
             import qiskit_code_assistant_mcp_server.server
 
             importlib.reload(qiskit_code_assistant_mcp_server.server)
@@ -193,9 +195,9 @@ class TestEndToEndScenarios:
     async def test_complete_workflow(self, mock_env_vars, mock_http_responses):
         """Test complete workflow: list models -> get completion -> accept."""
         from qiskit_code_assistant_mcp_server.qca import (
-            qca_list_models,
-            qca_get_completion,
             qca_accept_completion,
+            qca_get_completion,
+            qca_list_models,
         )
 
         # 1. List models
@@ -215,8 +217,8 @@ class TestEndToEndScenarios:
     async def test_disclaimer_workflow(self, mock_env_vars, mock_http_responses):
         """Test disclaimer workflow: get disclaimer -> accept disclaimer."""
         from qiskit_code_assistant_mcp_server.qca import (
-            qca_get_model_disclaimer,
             qca_accept_model_disclaimer,
+            qca_get_model_disclaimer,
         )
 
         # 1. Get disclaimer

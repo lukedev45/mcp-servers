@@ -13,15 +13,76 @@
 """Test configuration and fixtures for Qiskit Code Assistant MCP Server tests."""
 
 import os
-import pytest
 from unittest.mock import patch
+
 import httpx
+import pytest
 import respx
 
 from qiskit_code_assistant_mcp_server.constants import (
     QCA_TOOL_API_BASE,
     QCA_TOOL_MODEL_NAME,
 )
+
+
+@pytest.fixture(autouse=True)
+async def reset_http_client():
+    """Reset the global HTTP client before and after each test.
+
+    This fixture ensures clean state between tests and properly closes
+    any async client that was created during the test.
+    """
+    import qiskit_code_assistant_mcp_server.utils as utils_module
+
+    # Reset before test - force clear without trying to close
+    # (might already be closed or in invalid state)
+    utils_module._client = None
+
+    yield
+
+    # Reset after test - properly close if still open
+    if utils_module._client is not None:
+        try:
+            if not utils_module._client.is_closed:
+                await utils_module._client.aclose()
+        except Exception:
+            pass  # Ignore errors during cleanup
+        finally:
+            utils_module._client = None
+
+
+@pytest.fixture
+async def http_client_for_tests(mock_env_vars):
+    """Create an HTTP client in proper async context for tests.
+
+    This fixture pre-creates the AsyncClient in the async context,
+    avoiding sniffio detection issues in Python 3.14+.
+    Use this fixture for tests that need to make actual HTTP requests
+    (with respx mocking).
+    """
+    import qiskit_code_assistant_mcp_server.utils as utils_module
+    from qiskit_code_assistant_mcp_server.constants import (
+        QCA_REQUEST_TIMEOUT,
+        QCA_TOOL_X_CALLER,
+    )
+
+    # Get token from env (set by mock_env_vars)
+    token = os.environ.get("QISKIT_IBM_TOKEN", "test_token")
+
+    headers = {
+        "x-caller": QCA_TOOL_X_CALLER,
+        "Accept": "application/json",
+        "Authorization": f"Bearer {token}",
+    }
+    utils_module._client = httpx.AsyncClient(
+        headers=headers,
+        timeout=httpx.Timeout(QCA_REQUEST_TIMEOUT),
+        limits=httpx.Limits(max_keepalive_connections=5, max_connections=10),
+    )
+
+    yield utils_module._client
+
+    # Cleanup is handled by reset_http_client autouse fixture
 
 
 @pytest.fixture

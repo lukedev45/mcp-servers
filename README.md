@@ -1,5 +1,11 @@
 # Qiskit MCP Servers
 
+[![Tests](https://github.com/Qiskit/mcp-servers/actions/workflows/test.yml/badge.svg)](https://github.com/Qiskit/mcp-servers/actions/workflows/test.yml)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+[![Type checked: mypy](https://img.shields.io/badge/type%20checked-mypy-blue.svg)](http://mypy-lang.org/)
+
 A collection of **Model Context Protocol (MCP)** servers that provide AI assistants, LLMs, and agents with seamless access to IBM Quantum services and Qiskit libraries for quantum computing development and research.
 
 ## 🌟 What is This?
@@ -142,6 +148,9 @@ Both servers maintain high code quality standards:
 - **[MCP Inspector](https://github.com/modelcontextprotocol/inspector)** - Interactive testing tool
 - **[FastMCP](https://github.com/jlowin/fastmcp)** - High-performance MCP framework
 
+### AI Development Assistant Support
+
+This repository includes AI-generated code and offers comprehensive guidance for AI coding assistants (like [IBM Bob](https://www.ibm.com/products/bob), Claude Code, GitHub Copilot, Cursor AI, and others) in [AGENTS.md](AGENTS.md). This helps AI assistants provide more accurate, context-aware suggestions when working with this codebase. 
 
 ## 📄 License
 

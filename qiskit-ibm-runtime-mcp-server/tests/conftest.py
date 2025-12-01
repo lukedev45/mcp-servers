@@ -13,8 +13,9 @@
 """Test configuration and fixtures for Qiskit IBM Runtime MCP Server tests."""
 
 import os
-import pytest
 from unittest.mock import Mock, patch
+
+import pytest
 from qiskit_ibm_runtime import QiskitRuntimeService
 
 

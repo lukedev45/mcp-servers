@@ -266,8 +266,8 @@ class TestModelSelection:
 
     def test_model_selection_default_available(self, mock_env_vars):
         """Test that default model is selected when available."""
-        from qiskit_code_assistant_mcp_server.qca import _select_available_model
         from qiskit_code_assistant_mcp_server.constants import QCA_TOOL_MODEL_NAME
+        from qiskit_code_assistant_mcp_server.qca import _select_available_model
 
         # Mock qca_list_models to return models including the default
         with patch("qiskit_code_assistant_mcp_server.qca.qca_list_models") as mock_list_models:
@@ -285,8 +285,8 @@ class TestModelSelection:
 
     def test_model_selection_default_unavailable(self, mock_env_vars):
         """Test that first available model is selected when default is not available."""
-        from qiskit_code_assistant_mcp_server.qca import _select_available_model
         from qiskit_code_assistant_mcp_server.constants import QCA_TOOL_MODEL_NAME
+        from qiskit_code_assistant_mcp_server.qca import _select_available_model
 
         with patch("qiskit_code_assistant_mcp_server.qca.qca_list_models") as mock_list_models:
             # Return models that don't include the default
@@ -306,8 +306,8 @@ class TestModelSelection:
 
     def test_model_selection_no_models_available(self, mock_env_vars):
         """Test graceful handling when no models are available."""
-        from qiskit_code_assistant_mcp_server.qca import _select_available_model
         from qiskit_code_assistant_mcp_server.constants import QCA_TOOL_MODEL_NAME
+        from qiskit_code_assistant_mcp_server.qca import _select_available_model
 
         with patch("qiskit_code_assistant_mcp_server.qca.qca_list_models") as mock_list_models:
             mock_list_models.return_value = {"status": "success", "models": []}
@@ -319,8 +319,8 @@ class TestModelSelection:
 
     def test_model_selection_api_error(self, mock_env_vars):
         """Test graceful handling when API call fails."""
-        from qiskit_code_assistant_mcp_server.qca import _select_available_model
         from qiskit_code_assistant_mcp_server.constants import QCA_TOOL_MODEL_NAME
+        from qiskit_code_assistant_mcp_server.qca import _select_available_model
 
         with patch("qiskit_code_assistant_mcp_server.qca.qca_list_models") as mock_list_models:
             mock_list_models.return_value = {
@@ -335,8 +335,8 @@ class TestModelSelection:
 
     def test_model_selection_exception(self, mock_env_vars):
         """Test graceful handling when an exception occurs."""
-        from qiskit_code_assistant_mcp_server.qca import _select_available_model
         from qiskit_code_assistant_mcp_server.constants import QCA_TOOL_MODEL_NAME
+        from qiskit_code_assistant_mcp_server.qca import _select_available_model
 
         with patch("qiskit_code_assistant_mcp_server.qca.qca_list_models") as mock_list_models:
             mock_list_models.side_effect = Exception("Network error")

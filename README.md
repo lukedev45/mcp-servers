@@ -1,5 +1,11 @@
 # Qiskit MCP Servers
 
+[![Tests](https://github.com/Qiskit/mcp-servers/actions/workflows/test.yml/badge.svg)](https://github.com/Qiskit/mcp-servers/actions/workflows/test.yml)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Python Version](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+[![Type checked: mypy](https://img.shields.io/badge/type%20checked-mypy-blue.svg)](http://mypy-lang.org/)
+
 A collection of **Model Context Protocol (MCP)** servers that provide AI assistants, LLMs, and agents with seamless access to IBM Quantum services and Qiskit libraries for quantum computing development and research.
 
 ## 🌟 What is This?
@@ -39,7 +45,20 @@ Comprehensive interface to IBM Quantum hardware via Qiskit IBM Runtime
 - **IBM Quantum account** and API token
 - **Qiskit Code Assistant access** (for code assistant server)
 
-### Installation & Usage
+### Installation
+
+#### Install from PyPI
+
+```bash
+# Install all MCP servers at once
+pip install qiskit-mcp-servers
+
+# Or install individual servers
+pip install qiskit-code-assistant-mcp-server
+pip install qiskit-ibm-runtime-mcp-server
+```
+
+#### Install from Source
 
 Each server is designed to run independently. Choose the server you need:
 
@@ -49,7 +68,7 @@ cd qiskit-code-assistant-mcp-server
 uv run qiskit-code-assistant-mcp-server
 ```
 
-#### ⚙️ IBM Runtime Server  
+#### ⚙️ IBM Runtime Server
 ```bash
 cd qiskit-ibm-runtime-mcp-server
 uv run qiskit-ibm-runtime-mcp-server

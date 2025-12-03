@@ -3,13 +3,30 @@ name = "qiskit-ibm-runtime-mcp-server"
 version = "0.1.0"
 description = "MCP server for IBM Quantum computing services through Qiskit IBM Runtime"
 readme = "README.md"
-requires-python = ">=3.10,<4.0"
+requires-python = ">=3.10,<3.15"
 dependencies = [
     "fastmcp>=2.8.1",
     "qiskit-ibm-runtime>=0.40.0",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.0",
     "nest-asyncio>=1.5.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.11.13",
+    "mypy>=1.15.0",
+    "pre-commit>=3.5.0",
+    "bandit[toml]>=1.7.0",
+]
+test = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-mock>=3.11.0",
+    "pytest-cov>=4.1.0",
+]
+all = [
+    "qiskit-ibm-runtime-mcp-server[dev,test]",
 ]
 
 [[project.authors]]
@@ -28,6 +45,8 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Physics",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
@@ -43,6 +62,9 @@ Documentation = "https://github.com/Qiskit/mcp-servers/tree/main/qiskit-ibm-runt
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.build.targets.wheel]
+packages = ["src/qiskit_ibm_runtime_mcp_server"]
+
 [project.scripts]
 qiskit-ibm-runtime-mcp-server = "qiskit_ibm_runtime_mcp_server:main"
 
@@ -50,6 +72,7 @@ qiskit-ibm-runtime-mcp-server = "qiskit_ibm_runtime_mcp_server:main"
 dev = [
     "ruff>=0.11.13",
     "mypy>=1.15.0",
+    "bandit[toml]>=1.9.2",
 ]
 test = [
     "pytest>=7.4.0",
@@ -57,3 +80,8 @@ test = [
     "pytest-mock>=3.11.0",
     "pytest-cov>=4.1.0",
 ]
+
+# Bandit security configuration
+[tool.bandit]
+skips = ["B101"]  # Skip assert_used check in tests
+exclude_dirs = ["tests", ".venv", "build", "dist"]

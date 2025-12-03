@@ -12,13 +12,17 @@
 
 """Integration tests for Qiskit Code Assistant MCP Server."""
 
-import pytest
 from unittest.mock import patch
+
 import httpx
+import pytest
 import respx
 
 from qiskit_code_assistant_mcp_server.server import mcp
-from qiskit_code_assistant_mcp_server.constants import QCA_TOOL_API_BASE
+
+
+# Use the test API base URL that matches mock_env_vars fixture
+TEST_QCA_API_BASE = "https://test-qca-api.example.com"
 
 
 class TestMCPServerIntegration:
@@ -41,6 +45,7 @@ class TestMCPServerIntegration:
 
             # Reimport server module to trigger validation
             import importlib
+
             import qiskit_code_assistant_mcp_server.server
 
             importlib.reload(qiskit_code_assistant_mcp_server.server)
@@ -123,9 +128,7 @@ class TestToolHandlers:
         """Test qca_accept_model_disclaimer tool."""
         from qiskit_code_assistant_mcp_server.qca import qca_accept_model_disclaimer
 
-        result = await qca_accept_model_disclaimer(
-            "mistral-small-3.2-24b-qiskit", "disclaimer_123"
-        )
+        result = await qca_accept_model_disclaimer("mistral-small-3.2-24b-qiskit", "disclaimer_123")
 
         assert result["status"] == "success"
         assert "result" in result
@@ -148,7 +151,7 @@ class TestErrorHandling:
     async def test_network_timeout_handling(self, mock_env_vars):
         """Test handling of network timeouts."""
         with respx.mock() as respx_mock:
-            respx_mock.get(f"{QCA_TOOL_API_BASE}/v1/models").mock(
+            respx_mock.get(f"{TEST_QCA_API_BASE}/v1/models").mock(
                 side_effect=httpx.TimeoutException("Request timeout")
             )
 
@@ -157,16 +160,13 @@ class TestErrorHandling:
             result = await qca_list_models()
 
             assert result["status"] == "error"
-            assert (
-                "timeout" in result["message"].lower()
-                or "failed" in result["message"].lower()
-            )
+            assert "timeout" in result["message"].lower() or "failed" in result["message"].lower()
 
     @pytest.mark.asyncio
     async def test_authentication_error_handling(self, mock_env_vars):
         """Test handling of authentication errors."""
         with respx.mock() as respx_mock:
-            respx_mock.get(f"{QCA_TOOL_API_BASE}/v1/models").mock(
+            respx_mock.get(f"{TEST_QCA_API_BASE}/v1/models").mock(
                 return_value=httpx.Response(401, json={"detail": "Invalid token"})
             )
 
@@ -180,10 +180,8 @@ class TestErrorHandling:
     async def test_server_error_handling(self, mock_env_vars):
         """Test handling of server errors."""
         with respx.mock() as respx_mock:
-            respx_mock.post(f"{QCA_TOOL_API_BASE}/v1/completions").mock(
-                return_value=httpx.Response(
-                    500, json={"detail": "Internal server error"}
-                )
+            respx_mock.post(f"{TEST_QCA_API_BASE}/v1/completions").mock(
+                return_value=httpx.Response(500, json={"detail": "Internal server error"})
             )
 
             from qiskit_code_assistant_mcp_server.qca import qca_get_completion
@@ -200,9 +198,9 @@ class TestEndToEndScenarios:
     async def test_complete_workflow(self, mock_env_vars, mock_http_responses):
         """Test complete workflow: list models -> get completion -> accept."""
         from qiskit_code_assistant_mcp_server.qca import (
-            qca_list_models,
-            qca_get_completion,
             qca_accept_completion,
+            qca_get_completion,
+            qca_list_models,
         )
 
         # 1. List models
@@ -222,14 +220,12 @@ class TestEndToEndScenarios:
     async def test_disclaimer_workflow(self, mock_env_vars, mock_http_responses):
         """Test disclaimer workflow: get disclaimer -> accept disclaimer."""
         from qiskit_code_assistant_mcp_server.qca import (
-            qca_get_model_disclaimer,
             qca_accept_model_disclaimer,
+            qca_get_model_disclaimer,
         )
 
         # 1. Get disclaimer
-        disclaimer_result = await qca_get_model_disclaimer(
-            "mistral-small-3.2-24b-qiskit"
-        )
+        disclaimer_result = await qca_get_model_disclaimer("mistral-small-3.2-24b-qiskit")
         assert disclaimer_result["status"] == "success"
         disclaimer_id = disclaimer_result["disclaimer"]["id"]
 

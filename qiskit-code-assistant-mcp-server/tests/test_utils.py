@@ -12,17 +12,18 @@
 
 """Unit tests for utility functions."""
 
-import pytest
-from unittest.mock import patch, Mock
-import httpx
-import respx
 import os
+from unittest.mock import Mock, patch
+
+import httpx
+import pytest
+import respx
 
 from qiskit_code_assistant_mcp_server.utils import (
-    make_qca_request,
+    close_http_client,
     get_error_message,
     get_http_client,
-    close_http_client,
+    make_qca_request,
 )
 
 
@@ -130,56 +131,74 @@ class TestGetErrorMessage:
 class TestHTTPClient:
     """Test HTTP client management."""
 
+    @pytest.fixture
+    def mock_async_client(self):
+        """Create a mock AsyncClient that doesn't require async context."""
+        mock_client = Mock(spec=httpx.AsyncClient)
+        mock_client.is_closed = False
+
+        async def mock_aclose():
+            mock_client.is_closed = True
+
+        mock_client.aclose = mock_aclose
+        return mock_client
+
     @pytest.mark.asyncio
-    async def test_get_http_client_creation(self, mock_env_vars):
+    async def test_get_http_client_creation(self, mock_env_vars, mock_async_client):
         """Test HTTP client creation."""
-        client = get_http_client()
-        assert isinstance(client, httpx.AsyncClient)
-        assert not client.is_closed
-
-        # Clean up
-        await close_http_client()
+        with patch.object(httpx, "AsyncClient", return_value=mock_async_client):
+            client = get_http_client()
+            assert client is mock_async_client
+            assert not client.is_closed
 
     @pytest.mark.asyncio
-    async def test_get_http_client_reuse(self, mock_env_vars):
+    async def test_get_http_client_reuse(self, mock_env_vars, mock_async_client):
         """Test HTTP client reuse."""
-        client1 = get_http_client()
-        client2 = get_http_client()
+        with patch.object(httpx, "AsyncClient", return_value=mock_async_client):
+            client1 = get_http_client()
+            client2 = get_http_client()
 
-        assert client1 is client2  # Same instance
-
-        # Clean up
-        await close_http_client()
+            assert client1 is client2  # Same instance
 
     @pytest.mark.asyncio
-    async def test_close_http_client(self, mock_env_vars):
+    async def test_close_http_client(self, mock_env_vars, mock_async_client):
         """Test HTTP client closure."""
-        client = get_http_client()
-        assert not client.is_closed
+        with patch.object(httpx, "AsyncClient", return_value=mock_async_client):
+            client = get_http_client()
+            assert not client.is_closed
 
-        await close_http_client()
-        assert client.is_closed
+            await close_http_client()
+            assert client.is_closed
 
     @pytest.mark.asyncio
     async def test_get_client_after_close(self, mock_env_vars):
         """Test getting client after closure creates new instance."""
-        client1 = get_http_client()
-        await close_http_client()
+        mock_client1 = Mock(spec=httpx.AsyncClient)
+        mock_client1.is_closed = False
 
-        client2 = get_http_client()
-        assert client1 is not client2
-        assert client1.is_closed
-        assert not client2.is_closed
+        async def mock_aclose1():
+            mock_client1.is_closed = True
 
-        # Clean up
-        await close_http_client()
+        mock_client1.aclose = mock_aclose1
+
+        mock_client2 = Mock(spec=httpx.AsyncClient)
+        mock_client2.is_closed = False
+
+        with patch.object(httpx, "AsyncClient", side_effect=[mock_client1, mock_client2]):
+            client1 = get_http_client()
+            await close_http_client()
+
+            client2 = get_http_client()
+            assert client1 is not client2
+            assert client1.is_closed
+            assert not client2.is_closed
 
 
 class TestMakeQCARequest:
     """Test QCA API request function."""
 
     @pytest.mark.asyncio
-    async def test_make_request_success(self, mock_env_vars):
+    async def test_make_request_success(self, http_client_for_tests):
         """Test successful API request."""
         with respx.mock() as respx_mock:
             respx_mock.get("https://test-api.example.com/test").mock(
@@ -190,11 +209,8 @@ class TestMakeQCARequest:
 
             assert result == {"result": "success"}
 
-            # Clean up
-            await close_http_client()
-
     @pytest.mark.asyncio
-    async def test_make_request_with_params(self, mock_env_vars):
+    async def test_make_request_with_params(self, http_client_for_tests):
         """Test API request with parameters."""
         with respx.mock() as respx_mock:
             respx_mock.get("https://test-api.example.com/test").mock(
@@ -207,11 +223,8 @@ class TestMakeQCARequest:
 
             assert result == {"result": "success"}
 
-            # Clean up
-            await close_http_client()
-
     @pytest.mark.asyncio
-    async def test_make_request_with_body(self, mock_env_vars):
+    async def test_make_request_with_body(self, http_client_for_tests):
         """Test API request with JSON body."""
         with respx.mock() as respx_mock:
             respx_mock.post("https://test-api.example.com/test").mock(
@@ -224,11 +237,8 @@ class TestMakeQCARequest:
 
             assert result == {"result": "created"}
 
-            # Clean up
-            await close_http_client()
-
     @pytest.mark.asyncio
-    async def test_make_request_http_error(self, mock_env_vars):
+    async def test_make_request_http_error(self, http_client_for_tests):
         """Test API request with HTTP error."""
         with respx.mock() as respx_mock:
             respx_mock.get("https://test-api.example.com/test").mock(
@@ -238,15 +248,10 @@ class TestMakeQCARequest:
             result = await make_qca_request("https://test-api.example.com/test", "GET")
 
             assert "error" in result
-            assert (
-                "Not found" in result["error"] or "Unable to fetch" in result["error"]
-            )
-
-            # Clean up
-            await close_http_client()
+            assert "Not found" in result["error"] or "Unable to fetch" in result["error"]
 
     @pytest.mark.asyncio
-    async def test_make_request_timeout_retry(self, mock_env_vars):
+    async def test_make_request_timeout_retry(self, http_client_for_tests):
         """Test API request with timeout and retry."""
         with respx.mock() as respx_mock:
             # First two calls timeout, third succeeds
@@ -264,11 +269,8 @@ class TestMakeQCARequest:
 
             assert result == {"result": "success"}
 
-            # Clean up
-            await close_http_client()
-
     @pytest.mark.asyncio
-    async def test_make_request_connection_error_retry(self, mock_env_vars):
+    async def test_make_request_connection_error_retry(self, http_client_for_tests):
         """Test API request with connection error and retry."""
         with respx.mock() as respx_mock:
             # First call fails, second succeeds
@@ -285,11 +287,8 @@ class TestMakeQCARequest:
 
             assert result == {"result": "success"}
 
-            # Clean up
-            await close_http_client()
-
     @pytest.mark.asyncio
-    async def test_make_request_max_retries_exceeded(self, mock_env_vars):
+    async def test_make_request_max_retries_exceeded(self, http_client_for_tests):
         """Test API request when max retries exceeded."""
         with respx.mock() as respx_mock:
             respx_mock.get("https://test-api.example.com/test").mock(
@@ -303,11 +302,8 @@ class TestMakeQCARequest:
             assert "error" in result
             assert "Request failed after 2 attempts" in result["error"]
 
-            # Clean up
-            await close_http_client()
-
     @pytest.mark.asyncio
-    async def test_make_request_unexpected_exception(self, mock_env_vars):
+    async def test_make_request_unexpected_exception(self, http_client_for_tests):
         """Test API request with unexpected exception."""
         with respx.mock() as respx_mock:
             respx_mock.get("https://test-api.example.com/test").mock(
@@ -318,9 +314,6 @@ class TestMakeQCARequest:
 
             assert "error" in result
             assert "Request failed after" in result["error"]
-
-            # Clean up
-            await close_http_client()
 
 
 # Assisted by watsonx Code Assistant

@@ -18,6 +18,8 @@ from typing import Any
 
 from qiskit_ibm_runtime import QiskitRuntimeService
 
+from qiskit_ibm_runtime_mcp_server.utils import with_sync
+
 
 def least_busy(backends: list[Any]) -> Any | None:
     """Find the least busy backend from a list of backends."""
@@ -38,7 +40,7 @@ def get_token_from_env() -> str | None:
     Returns:
         Token string if found in environment, None otherwise
     """
-    token = os.getenv("IBM_QUANTUM_TOKEN")
+    token = os.getenv("QISKIT_IBM_TOKEN")
     if (
         token
         and token.strip()
@@ -117,6 +119,7 @@ def initialize_service(
         raise
 
 
+@with_sync
 async def setup_ibm_quantum_account(
     token: str | None = None, channel: str = "ibm_quantum_platform"
 ) -> dict[str, Any]:
@@ -134,7 +137,7 @@ async def setup_ibm_quantum_account(
     if not token or not token.strip():
         env_token = get_token_from_env()
         if env_token:
-            logger.info("Using token from IBM_QUANTUM_TOKEN environment variable")
+            logger.info("Using token from QISKIT_IBM_TOKEN environment variable")
             token = env_token
         else:
             # Try to use saved credentials
@@ -168,6 +171,7 @@ async def setup_ibm_quantum_account(
         return {"status": "error", "message": f"Failed to set up account: {e!s}"}
 
 
+@with_sync
 async def list_backends() -> dict[str, Any]:
     """
     List available IBM Quantum backends.
@@ -219,6 +223,7 @@ async def list_backends() -> dict[str, Any]:
         return {"status": "error", "message": f"Failed to list backends: {e!s}"}
 
 
+@with_sync
 async def least_busy_backend() -> dict[str, Any]:
     """
     Find the least busy operational backend.
@@ -265,6 +270,7 @@ async def least_busy_backend() -> dict[str, Any]:
         }
 
 
+@with_sync
 async def get_backend_properties(backend_name: str) -> dict[str, Any]:
     """
     Get detailed properties of a specific backend.
@@ -321,6 +327,7 @@ async def get_backend_properties(backend_name: str) -> dict[str, Any]:
         }
 
 
+@with_sync
 async def list_my_jobs(limit: int = 10) -> dict[str, Any]:
     """
     List user's recent jobs.
@@ -362,6 +369,7 @@ async def list_my_jobs(limit: int = 10) -> dict[str, Any]:
         return {"status": "error", "message": f"Failed to list jobs: {e!s}"}
 
 
+@with_sync
 async def get_job_status(job_id: str) -> dict[str, Any]:
     """
     Get status of a specific job.
@@ -400,6 +408,7 @@ async def get_job_status(job_id: str) -> dict[str, Any]:
         return {"status": "error", "message": f"Failed to get job status: {e!s}"}
 
 
+@with_sync
 async def cancel_job(job_id: str) -> dict[str, Any]:
     """
     Cancel a specific job.
@@ -432,6 +441,7 @@ async def cancel_job(job_id: str) -> dict[str, Any]:
         return {"status": "error", "message": f"Failed to cancel job: {e!s}"}
 
 
+@with_sync
 async def get_service_status() -> str:
     """
     Get current IBM Quantum service status.

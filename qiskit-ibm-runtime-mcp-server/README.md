@@ -48,7 +48,7 @@ This project recommends using [uv](https://astral.sh/uv) for virtual environment
    cp .env.example .env
 
    # Edit .env and add your IBM Quantum API token
-   export IBM_QUANTUM_TOKEN="your_token_here"
+   export QISKIT_IBM_TOKEN="your_token_here"
    ```
 
    **Option B: Save Credentials Locally**
@@ -73,7 +73,7 @@ This project recommends using [uv](https://astral.sh/uv) for virtual environment
    **Token Resolution Priority:**
    The server looks for credentials in this order:
    1. Explicit token passed to `setup_ibm_quantum_account()`
-   2. `IBM_QUANTUM_TOKEN` environment variable
+   2. `QISKIT_IBM_TOKEN` environment variable
    3. Saved credentials in `~/.qiskit/qiskit-ibm.json`
 
 ## Quick Start
@@ -124,33 +124,33 @@ print(f"Cancelled job: {cancelled_job}")
 
 #### Sync Usage (DSPy, Scripts, Jupyter)
 
-For frameworks that don't support async operations:
+For frameworks that don't support async operations, all async functions have a `.sync` attribute:
 
 ```python
-from qiskit_ibm_runtime_mcp_server.sync import (
-    setup_ibm_quantum_account_sync,
-    list_backends_sync,
-    least_busy_backend_sync,
-    get_backend_properties_sync,
-    list_my_jobs_sync,
-    get_job_status_sync,
-    cancel_job_sync
+from qiskit_ibm_runtime_mcp_server.ibm_runtime import (
+    setup_ibm_quantum_account,
+    list_backends,
+    least_busy_backend,
+    get_backend_properties,
+    list_my_jobs,
+    get_job_status,
+    cancel_job
 )
 
 # Optional: Setup account if not already configured
-# Will automatically use IBM_QUANTUM_TOKEN env var or saved credentials
-setup_ibm_quantum_account_sync()  # No token needed if already configured
+# Will automatically use QISKIT_IBM_TOKEN env var or saved credentials
+setup_ibm_quantum_account.sync()  # No token needed if already configured
 
-# Use synchronously without async/await - no setup needed if credentials saved
-backends = list_backends_sync()
+# Use .sync for synchronous execution - no setup needed if credentials saved
+backends = list_backends.sync()
 print(f"Available backends: {backends['total_backends']}")
 
 # Get least busy backend
-backend = least_busy_backend_sync()
+backend = least_busy_backend.sync()
 print(f"Least busy: {backend['backend_name']}")
 
-# Works in Jupyter notebooks and DSPy agents
-jobs = list_my_jobs_sync(limit=5)
+# Works in Jupyter notebooks (handles nested event loops automatically)
+jobs = list_my_jobs.sync(limit=5)
 print(f"Recent jobs: {len(jobs['jobs'])}")
 ```
 
@@ -158,27 +158,25 @@ print(f"Recent jobs: {len(jobs['jobs'])}")
 
 ```python
 import dspy
-import os
 from dotenv import load_dotenv
-from qiskit_ibm_runtime_mcp_server.sync import (
-    setup_ibm_quantum_account_sync,
-    list_backends_sync,
-    least_busy_backend_sync,
-    get_backend_properties_sync
+from qiskit_ibm_runtime_mcp_server.ibm_runtime import (
+    setup_ibm_quantum_account,
+    list_backends,
+    least_busy_backend,
+    get_backend_properties
 )
 
-# Load environment variables (includes IBM_QUANTUM_TOKEN)
+# Load environment variables (includes QISKIT_IBM_TOKEN)
 load_dotenv()
 
-# The agent will automatically use saved credentials or environment variables
-# No need to explicitly pass tokens to individual functions
+# Use .sync versions for DSPy tools
 agent = dspy.ReAct(
     YourSignature,
     tools=[
-        setup_ibm_quantum_account_sync,  # Optional - only if you need to verify setup
-        list_backends_sync,
-        least_busy_backend_sync,
-        get_backend_properties_sync
+        setup_ibm_quantum_account.sync,  # Optional - only if you need to verify setup
+        list_backends.sync,
+        least_busy_backend.sync,
+        get_backend_properties.sync
     ]
 )
 
@@ -195,13 +193,13 @@ Configure IBM Quantum account with API token.
 
 **Parameters:**
 - `token` (optional): IBM Quantum API token. If not provided, the function will:
-  1. Check for `IBM_QUANTUM_TOKEN` environment variable
+  1. Check for `QISKIT_IBM_TOKEN` environment variable
   2. Use saved credentials from `~/.qiskit/qiskit-ibm.json`
 - `channel`: Service channel (default: `"ibm_quantum_platform"`)
 
 **Returns:** Setup status and account information
 
-**Note:** If you already have saved credentials or have set the `IBM_QUANTUM_TOKEN` environment variable, you can call this function without parameters or skip it entirely and use other functions directly.
+**Note:** If you already have saved credentials or have set the `QISKIT_IBM_TOKEN` environment variable, you can call this function without parameters or skip it entirely and use other functions directly.
 
 #### `list_backends()`
 Get list of available quantum backends.
@@ -254,10 +252,10 @@ Get current service status and connection info.
 ## Security Considerations
 
 - **Store IBM Quantum tokens securely**: Never commit tokens to version control
-- **Use environment variables for production deployments**: Set `IBM_QUANTUM_TOKEN` environment variable
+- **Use environment variables for production deployments**: Set `QISKIT_IBM_TOKEN` environment variable
 - **Credential Priority**: The server automatically resolves credentials in this order:
   1. Explicit token parameter (highest priority)
-  2. `IBM_QUANTUM_TOKEN` environment variable
+  2. `QISKIT_IBM_TOKEN` environment variable
   3. Saved credentials in `~/.qiskit/qiskit-ibm.json` (lowest priority)
 - **Token Validation**: The server rejects placeholder values like `<PASSWORD>`, `<TOKEN>`, etc., to prevent accidental credential corruption
 - **Implement rate limiting for production use**: Monitor API request frequency
@@ -331,6 +329,7 @@ uv run pytest tests/test_server.py -v
 ### Test Structure
 
 - `tests/test_server.py` - Unit tests for server functions
+- `tests/test_sync.py` - Unit tests for synchronous execution
 - `tests/test_integration.py` - Integration tests
 - `tests/conftest.py` - Test fixtures and configuration
 
@@ -340,6 +339,7 @@ The test suite covers:
 - ✅ Service initialization and account setup
 - ✅ Backend listing and analysis
 - ✅ Job management and monitoring
+- ✅ Synchronous execution (`.sync` methods)
 - ✅ Error handling and validation
 - ✅ Integration scenarios
 - ✅ Resource and tool handlers

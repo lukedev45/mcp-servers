@@ -10,10 +10,35 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+"""Utility functions for the Qiskit Code Assistant MCP server.
+
+This module provides HTTP client utilities and the `with_sync` decorator for
+creating dual async/sync APIs.
+
+Synchronous Execution
+---------------------
+All async functions decorated with `@with_sync` can be called synchronously
+via the `.sync` attribute:
+
+    from qiskit_code_assistant_mcp_server.qca import qca_list_models
+
+    # Async usage (in async context)
+    result = await qca_list_models()
+
+    # Sync usage (in sync context, Jupyter notebooks, DSPy, etc.)
+    result = qca_list_models.sync()
+
+The sync wrapper handles event loop management automatically, including
+nested event loops in Jupyter notebooks (via nest_asyncio).
+"""
+
+import asyncio
 import json
 import os
+from collections.abc import Callable, Coroutine
+from functools import wraps
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeVar
 
 import httpx
 
@@ -23,39 +48,106 @@ from qiskit_code_assistant_mcp_server.constants import (
 )
 
 
-def _get_token_from_system() -> str:
+# Apply nest_asyncio to allow running async code in environments with existing event loops
+try:
+    import nest_asyncio
+
+    nest_asyncio.apply()
+except ImportError:
+    pass
+
+
+F = TypeVar("F", bound=Callable[..., Any])
+T = TypeVar("T")
+
+
+def _run_async(coro: Coroutine[Any, Any, T]) -> T:
+    """Helper to run async functions synchronously.
+
+    This handles both cases:
+    - Running in a Jupyter notebook or other environment with an existing event loop
+    - Running in a standard Python script without an event loop
+    """
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # We're in a running loop (e.g., Jupyter), use run_until_complete
+            # This works because nest_asyncio allows nested loops
+            return loop.run_until_complete(coro)
+        else:
+            return loop.run_until_complete(coro)
+    except RuntimeError:
+        # No event loop exists, create one
+        return asyncio.run(coro)
+
+
+def with_sync(func: F) -> F:
+    """Decorator that adds a `.sync` attribute to async functions for synchronous execution.
+
+    Usage:
+        @with_sync
+        async def my_async_function(arg: str) -> Dict[str, Any]:
+            ...
+
+        # Async call
+        result = await my_async_function("hello")
+
+        # Sync call
+        result = my_async_function.sync("hello")
+    """
+
+    @wraps(func)
+    def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
+        return _run_async(func(*args, **kwargs))
+
+    func.sync = sync_wrapper  # type: ignore[attr-defined]
+    return func
+
+
+def _get_token_from_system() -> str | None:
+    """Get the IBM Quantum token from environment or credentials file.
+
+    Returns:
+        Token string if found, None otherwise.
+    """
     token = os.getenv("QISKIT_IBM_TOKEN")
 
     if not token:
         qiskit_file = Path.home() / ".qiskit" / "qiskit-ibm.json"
         if not qiskit_file.exists():
-            raise Exception(
-                f"Credentials file {qiskit_file} does not exist. Please set env var QISKIT_IBM_TOKEN to access the service, or save your IBM Quantum API token using QiskitRuntimeService. "
-                "More info about saving your token using QiskitRuntimeService https://quantum.cloud.ibm.com/docs/en/api/qiskit-ibm-runtime/qiskit-runtime-service"
-            )
+            return None
 
-        with open(qiskit_file) as _sc:
-            creds = json.loads(_sc.read())
+        try:
+            with open(qiskit_file) as _sc:
+                creds = json.loads(_sc.read())
+            token = creds.get("default-ibm-quantum-platform", {}).get("token")
+        except Exception:
+            return None
 
-        token = creds.get("default-ibm-quantum-platform", {}).get("token")
-        if token is None:
-            raise Exception(
-                f"default-ibm-quantum-platform not found in {qiskit_file}. Please set env var QISKIT_IBM_TOKEN to access the service, or save your IBM Quantum API token using QiskitRuntimeService. "
-                "More info about saving your token using QiskitRuntimeService https://quantum.cloud.ibm.com/docs/en/api/qiskit-ibm-runtime/qiskit-runtime-service"
-            )
-
-    return token
+    return token if token else None
 
 
 # Lazy token retrieval - only fetch when first needed
 _cached_token: str | None = None
+_token_checked: bool = False
 
 
 def _get_token() -> str:
-    """Get the IBM Quantum token, using cached value if available."""
-    global _cached_token
-    if _cached_token is None:
+    """Get the IBM Quantum token, using cached value if available.
+
+    Raises:
+        Exception: If no token is available when actually needed for an API call.
+    """
+    global _cached_token, _token_checked
+    if not _token_checked:
         _cached_token = _get_token_from_system()
+        _token_checked = True
+    if _cached_token is None:
+        raise Exception(
+            "No IBM Quantum token available. Please set env var QISKIT_IBM_TOKEN to access the service, "
+            "or save your IBM Quantum API token using QiskitRuntimeService. "
+            "More info: https://quantum.cloud.ibm.com/docs/en/api/qiskit-ibm-runtime/qiskit-runtime-service"
+        )
     return _cached_token
 
 
@@ -113,8 +205,6 @@ async def make_qca_request(
     max_retries: int = 3,
 ) -> dict[str, Any]:
     """Make an async request to the Qiskit Code Assistant with proper error handling and retry logic."""
-    import asyncio
-
     client = get_http_client()
     last_exception: httpx.TimeoutException | httpx.ConnectError | Exception | None = None
     response = None

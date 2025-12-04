@@ -10,25 +10,59 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Unit tests for sync wrapper functions."""
+"""Unit tests for the with_sync decorator and .sync methods."""
 
 from unittest.mock import patch
 
-from qiskit_code_assistant_mcp_server.sync import (
-    qca_accept_completion_sync,
-    qca_get_completion_sync,
-    qca_get_model_sync,
-    qca_get_rag_completion_sync,
-    qca_get_service_status_sync,
-    qca_list_models_sync,
+from qiskit_code_assistant_mcp_server.qca import (
+    qca_accept_completion,
+    qca_get_completion,
+    qca_get_model,
+    qca_get_rag_completion,
+    qca_get_service_status,
+    qca_list_models,
 )
 
 
-class TestQCAListModelsSync:
-    """Test qca_list_models_sync function."""
+class TestWithSyncDecorator:
+    """Test that async functions have .sync attribute."""
+
+    def test_qca_list_models_has_sync(self):
+        """Test qca_list_models has .sync attribute."""
+        assert hasattr(qca_list_models, "sync")
+        assert callable(qca_list_models.sync)
+
+    def test_qca_get_model_has_sync(self):
+        """Test qca_get_model has .sync attribute."""
+        assert hasattr(qca_get_model, "sync")
+        assert callable(qca_get_model.sync)
+
+    def test_qca_get_completion_has_sync(self):
+        """Test qca_get_completion has .sync attribute."""
+        assert hasattr(qca_get_completion, "sync")
+        assert callable(qca_get_completion.sync)
+
+    def test_qca_get_rag_completion_has_sync(self):
+        """Test qca_get_rag_completion has .sync attribute."""
+        assert hasattr(qca_get_rag_completion, "sync")
+        assert callable(qca_get_rag_completion.sync)
+
+    def test_qca_accept_completion_has_sync(self):
+        """Test qca_accept_completion has .sync attribute."""
+        assert hasattr(qca_accept_completion, "sync")
+        assert callable(qca_accept_completion.sync)
+
+    def test_qca_get_service_status_has_sync(self):
+        """Test qca_get_service_status has .sync attribute."""
+        assert hasattr(qca_get_service_status, "sync")
+        assert callable(qca_get_service_status.sync)
+
+
+class TestSyncMethodExecution:
+    """Test that .sync methods execute correctly."""
 
     def test_list_models_sync_success(self, mock_env_vars):
-        """Test successful models listing with sync wrapper."""
+        """Test successful models listing with .sync method."""
         mock_response = {
             "status": "success",
             "models": [
@@ -37,145 +71,94 @@ class TestQCAListModelsSync:
             ],
         }
 
-        with patch("qiskit_code_assistant_mcp_server.sync._run_async") as mock_run:
+        with patch("qiskit_code_assistant_mcp_server.utils._run_async") as mock_run:
             mock_run.return_value = mock_response
 
-            result = qca_list_models_sync()
+            result = qca_list_models.sync()
 
             assert result["status"] == "success"
             assert "models" in result
             assert len(result["models"]) == 2
 
     def test_list_models_sync_error(self, mock_env_vars):
-        """Test error handling in sync wrapper."""
+        """Test error handling in .sync method."""
         mock_response = {"status": "error", "message": "Authentication failed"}
 
-        with patch("qiskit_code_assistant_mcp_server.sync._run_async") as mock_run:
+        with patch("qiskit_code_assistant_mcp_server.utils._run_async") as mock_run:
             mock_run.return_value = mock_response
 
-            result = qca_list_models_sync()
+            result = qca_list_models.sync()
 
             assert result["status"] == "error"
             assert "Authentication failed" in result["message"]
 
-
-class TestQCAGetModelSync:
-    """Test qca_get_model_sync function."""
-
     def test_get_model_sync_success(self, mock_env_vars):
-        """Test successful model retrieval with sync wrapper."""
+        """Test successful model retrieval with .sync method."""
         mock_response = {
             "status": "success",
             "model": {"id": "mistral-small-3.2-24b-qiskit", "name": "Granite Qiskit"},
         }
 
-        with patch("qiskit_code_assistant_mcp_server.sync._run_async") as mock_run:
+        with patch("qiskit_code_assistant_mcp_server.utils._run_async") as mock_run:
             mock_run.return_value = mock_response
 
-            result = qca_get_model_sync("mistral-small-3.2-24b-qiskit")
+            result = qca_get_model.sync("mistral-small-3.2-24b-qiskit")
 
             assert result["status"] == "success"
             assert result["model"]["id"] == "mistral-small-3.2-24b-qiskit"
 
-    def test_get_model_sync_empty_id(self, mock_env_vars):
-        """Test validation of empty model_id."""
-        mock_response = {
-            "status": "error",
-            "message": "model_id is required and cannot be empty",
-        }
-
-        with patch("qiskit_code_assistant_mcp_server.sync._run_async") as mock_run:
-            mock_run.return_value = mock_response
-
-            result = qca_get_model_sync("")
-
-            assert result["status"] == "error"
-
-
-class TestQCAGetCompletionSync:
-    """Test qca_get_completion_sync function."""
-
     def test_get_completion_sync_success(self, mock_env_vars):
-        """Test successful code completion with sync wrapper."""
+        """Test successful code completion with .sync method."""
         mock_response = {
             "status": "success",
             "completion_id": "comp_123",
             "choices": [{"text": "from qiskit import QuantumCircuit"}],
         }
 
-        with patch("qiskit_code_assistant_mcp_server.sync._run_async") as mock_run:
+        with patch("qiskit_code_assistant_mcp_server.utils._run_async") as mock_run:
             mock_run.return_value = mock_response
 
-            result = qca_get_completion_sync("Create a quantum circuit")
+            result = qca_get_completion.sync("Create a quantum circuit")
 
             assert result["status"] == "success"
             assert "completion_id" in result
             assert len(result["choices"]) > 0
 
-    def test_get_completion_sync_empty_prompt(self, mock_env_vars):
-        """Test validation of empty prompt."""
-        mock_response = {
-            "status": "error",
-            "message": "prompt is required and cannot be empty",
-        }
-
-        with patch("qiskit_code_assistant_mcp_server.sync._run_async") as mock_run:
-            mock_run.return_value = mock_response
-
-            result = qca_get_completion_sync("")
-
-            assert result["status"] == "error"
-
-
-class TestQCAGetRagCompletionSync:
-    """Test qca_get_rag_completion_sync function."""
-
     def test_get_rag_completion_sync_success(self, mock_env_vars):
-        """Test successful RAG completion with sync wrapper."""
+        """Test successful RAG completion with .sync method."""
         mock_response = {
             "status": "success",
             "completion_id": "rag_123",
             "choices": [{"text": "Quantum entanglement is..."}],
         }
 
-        with patch("qiskit_code_assistant_mcp_server.sync._run_async") as mock_run:
+        with patch("qiskit_code_assistant_mcp_server.utils._run_async") as mock_run:
             mock_run.return_value = mock_response
 
-            result = qca_get_rag_completion_sync("What is quantum entanglement?")
+            result = qca_get_rag_completion.sync("What is quantum entanglement?")
 
             assert result["status"] == "success"
             assert "choices" in result
 
-
-class TestQCAAcceptCompletionSync:
-    """Test qca_accept_completion_sync function."""
-
     def test_accept_completion_sync_success(self, mock_env_vars):
-        """Test successful completion acceptance with sync wrapper."""
+        """Test successful completion acceptance with .sync method."""
         mock_response = {"status": "success", "result": "accepted"}
 
-        with patch("qiskit_code_assistant_mcp_server.sync._run_async") as mock_run:
+        with patch("qiskit_code_assistant_mcp_server.utils._run_async") as mock_run:
             mock_run.return_value = mock_response
 
-            result = qca_accept_completion_sync("comp_123")
+            result = qca_accept_completion.sync("comp_123")
 
             assert result["status"] == "success"
             assert result["result"] == "accepted"
 
-
-class TestQCAGetServiceStatusSync:
-    """Test qca_get_service_status_sync function."""
-
     def test_get_service_status_sync_success(self, mock_env_vars):
-        """Test successful service status check with sync wrapper."""
+        """Test successful service status check with .sync method."""
         mock_response = "Qiskit Code Assistant Service Status: {'connected': True}"
 
-        with patch("qiskit_code_assistant_mcp_server.sync._run_async") as mock_run:
+        with patch("qiskit_code_assistant_mcp_server.utils._run_async") as mock_run:
             mock_run.return_value = mock_response
 
-            result = qca_get_service_status_sync()
+            result = qca_get_service_status.sync()
 
             assert "connected" in result
-
-
-# Assisted by watsonx Code Assistant

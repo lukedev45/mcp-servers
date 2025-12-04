@@ -85,33 +85,37 @@ uv run qiskit-code-assistant-mcp-server
 
 The server will start and listen for MCP connections.
 
-### Using Sync Wrappers
+### Synchronous Usage
 
-For frameworks that don't support async operations (DSPy, traditional scripts, etc.), use the synchronous wrappers:
+For frameworks that don't support async operations (DSPy, traditional scripts, etc.), all async functions have a `.sync` attribute for synchronous execution:
 
 ```python
-from qiskit_code_assistant_mcp_server.sync import (
-    qca_get_completion_sync,
-    qca_get_rag_completion_sync,
-    qca_list_models_sync
+from qiskit_code_assistant_mcp_server.qca import (
+    qca_get_completion,
+    qca_get_rag_completion,
+    qca_list_models
 )
 
-# Use synchronously without async/await
-result = qca_get_completion_sync("Write a quantum circuit for a Bell state")
+# Use .sync for synchronous execution
+result = qca_get_completion.sync("Write a quantum circuit for a Bell state")
 print(result)
 
-# Works in Jupyter notebooks
-rag_result = qca_get_rag_completion_sync("What is quantum entanglement?")
+# Works in Jupyter notebooks (handles nested event loops automatically)
+rag_result = qca_get_rag_completion.sync("What is quantum entanglement?")
 print(rag_result)
+
+# List available models
+models = qca_list_models.sync()
+print(models)
 ```
 
-**Available sync functions:**
-- `qca_list_models_sync()` - List available models
-- `qca_get_model_sync(model_id)` - Get model info
-- `qca_get_completion_sync(prompt)` - Get code completion
-- `qca_get_rag_completion_sync(prompt)` - Get RAG-based completion
-- `qca_accept_completion_sync(completion_id)` - Accept a completion
-- `qca_get_service_status_sync()` - Get service status
+**Available functions (all support `.sync`):**
+- `qca_list_models()` - List available models
+- `qca_get_model(model_id)` - Get model info
+- `qca_get_completion(prompt)` - Get code completion
+- `qca_get_rag_completion(prompt)` - Get RAG-based completion
+- `qca_accept_completion(completion_id)` - Accept a completion
+- `qca_get_service_status()` - Get service status
 
 
 ### Testing and debugging the server
@@ -173,8 +177,9 @@ uv run pytest tests/test_qca.py -v
 ### Test Structure
 
 - `tests/test_qca.py` - Unit tests for QCA functions
-- `tests/test_utils.py` - Unit tests for utility functions  
+- `tests/test_utils.py` - Unit tests for utility functions
 - `tests/test_constants.py` - Unit tests for configuration
+- `tests/test_sync.py` - Unit tests for synchronous execution
 - `tests/test_integration.py` - Integration tests
 - `tests/conftest.py` - Test fixtures and configuration
 
@@ -185,6 +190,7 @@ The test suite covers:
 - ✅ Model selection and availability guardrail
 - ✅ Error handling and validation
 - ✅ HTTP client management
+- ✅ Synchronous execution (`.sync` methods)
 - ✅ Configuration validation
 - ✅ Integration scenarios
 - ✅ Resource and tool handlers

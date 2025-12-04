@@ -357,8 +357,6 @@ uv run ruff check --fix src/ tests/
    ```bash
    # Verify token is set
    echo $QISKIT_IBM_TOKEN
-   # OR
-   echo $QISKIT_IBM_TOKEN
    ```
 
 ### Publishing to PyPI
@@ -428,7 +426,7 @@ uv publish --repository testpypi
 
 1. **"401 Unauthorized" or authentication errors**:
    - Check: Is IBM Quantum token set correctly?
-   - Verify: `echo $QISKIT_IBM_TOKEN` or `echo $QISKIT_IBM_TOKEN`
+   - Verify: `echo $QISKIT_IBM_TOKEN`
    - Check: Token is valid on https://quantum.cloud.ibm.com/
    - Try: Set token directly in `.env` file
    - For Runtime: Check saved credentials in `~/.qiskit/qiskit-ibm.json`

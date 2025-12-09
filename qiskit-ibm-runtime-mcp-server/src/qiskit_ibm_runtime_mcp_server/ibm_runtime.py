@@ -339,19 +339,31 @@ async def get_backend_properties(backend_name: str) -> dict[str, Any]:
         status = backend.status()
 
         # Get configuration
+        processor_type = None
+        backend_version = None
+        quantum_volume = None
+        basis_gates: list[str] = []
+        coupling_map: list[list[int]] = []
+        max_shots = 0
+        max_experiments = 0
         try:
             config = backend.configuration()
-            basis_gates = getattr(config, "basis_gates", [])
-            coupling_map = getattr(config, "coupling_map", [])
+            basis_gates = getattr(config, "basis_gates", []) or []
+            coupling_map = getattr(config, "coupling_map", []) or []
             max_shots = getattr(config, "max_shots", 0)
             max_experiments = getattr(config, "max_experiments", 0)
+            quantum_volume = getattr(config, "quantum_volume", None)
+            backend_version = getattr(config, "backend_version", None)
+            processor_type = getattr(config, "processor_type", None)
+            # processor_type may be a dict with 'family' and 'revision' keys
+            if isinstance(processor_type, dict):
+                family = processor_type.get("family", "")
+                revision = processor_type.get("revision", "")
+                processor_type = f"{family} r{revision}" if revision else family
         except Exception:
-            basis_gates = []
-            coupling_map = []
-            max_shots = 0
-            max_experiments = 0
+            pass  # nosec B110 - Intentionally ignoring config errors; defaults are acceptable
 
-        properties = {
+        return {
             "status": "success",
             "backend_name": backend.name,
             "num_qubits": getattr(backend, "num_qubits", 0),
@@ -359,13 +371,14 @@ async def get_backend_properties(backend_name: str) -> dict[str, Any]:
             "operational": status.operational,
             "pending_jobs": status.pending_jobs,
             "status_msg": status.status_msg,
+            "processor_type": processor_type,
+            "backend_version": backend_version,
+            "quantum_volume": quantum_volume,
             "basis_gates": basis_gates,
             "coupling_map": coupling_map,
             "max_shots": max_shots,
             "max_experiments": max_experiments,
         }
-
-        return properties
 
     except Exception as e:
         logger.error(f"Failed to get backend properties: {e}")
@@ -479,22 +492,11 @@ async def get_backend_calibration(
         backend = service.backend(backend_name)
         num_qubits = getattr(backend, "num_qubits", 0)
 
-        # Get processor type, backend version, and coupling map from configuration
-        processor_type = None
-        backend_version = None
+        # Get coupling map from configuration (needed for gate errors)
         coupling_map: list[list[int]] = []
-        try:
+        with contextlib.suppress(Exception):
             config = backend.configuration()
-            processor_type = getattr(config, "processor_type", None)
-            # processor_type may be a dict with 'family' and 'revision' keys
-            if isinstance(processor_type, dict):
-                family = processor_type.get("family", "")
-                revision = processor_type.get("revision", "")
-                processor_type = f"{family} r{revision}" if revision else family
-            backend_version = getattr(config, "backend_version", None)
             coupling_map = getattr(config, "coupling_map", []) or []
-        except Exception:
-            pass  # nosec B110 - Intentionally ignoring config errors; defaults are acceptable
 
         # Get backend properties (calibration data)
         try:
@@ -553,8 +555,6 @@ async def get_backend_calibration(
             "status": "success",
             "backend_name": backend_name,
             "num_qubits": num_qubits,
-            "processor_type": processor_type,
-            "backend_version": backend_version,
             "last_calibration": last_update,
             "faulty_qubits": faulty_qubits,
             "faulty_gates": faulty_gates,

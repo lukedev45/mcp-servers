@@ -32,6 +32,7 @@ from fastmcp import FastMCP
 
 from qiskit_ibm_runtime_mcp_server.ibm_runtime import (
     cancel_job,
+    get_backend_calibration,
     get_backend_properties,
     get_job_status,
     get_service_status,
@@ -79,6 +80,27 @@ async def least_busy_backend_tool() -> dict[str, Any]:
 async def get_backend_properties_tool(backend_name: str) -> dict[str, Any]:
     """Get detailed properties of a specific backend."""
     return await get_backend_properties(backend_name)
+
+
+@mcp.tool()
+async def get_backend_calibration_tool(
+    backend_name: str, qubit_indices: list[int] | None = None
+) -> dict[str, Any]:
+    """Get calibration data for a backend including T1, T2 times and error rates.
+
+    Args:
+        backend_name: Name of the backend (e.g., 'ibm_brisbane')
+        qubit_indices: Optional list of specific qubit indices to get data for.
+                      If not provided, returns data for the first 10 qubits.
+
+    Returns:
+        Calibration data including:
+        - T1 and T2 coherence times (in microseconds)
+        - Readout errors for each qubit
+        - Gate errors for common gates (x, sx, cx, etc.)
+        - Last calibration timestamp
+    """
+    return await get_backend_calibration(backend_name, qubit_indices)
 
 
 @mcp.tool()

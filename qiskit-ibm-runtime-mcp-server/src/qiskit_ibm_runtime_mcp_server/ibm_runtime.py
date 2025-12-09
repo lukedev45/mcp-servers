@@ -328,6 +328,182 @@ async def get_backend_properties(backend_name: str) -> dict[str, Any]:
 
 
 @with_sync
+async def get_backend_calibration(
+    backend_name: str, qubit_indices: list[int] | None = None
+) -> dict[str, Any]:
+    """
+    Get calibration data for a specific backend including T1, T2, and error rates.
+
+    Args:
+        backend_name: Name of the backend
+        qubit_indices: Optional list of qubit indices to get data for.
+                      If None, returns data for all qubits (limited to first 10 for brevity).
+
+    Returns:
+        Calibration data including T1, T2 times and error rates
+    """
+    global service
+
+    try:
+        if service is None:
+            service = initialize_service()
+
+        backend = service.backend(backend_name)
+        num_qubits = getattr(backend, "num_qubits", 0)
+
+        # Get backend properties (calibration data)
+        try:
+            properties = backend.properties()
+        except Exception as e:
+            logger.warning(f"Could not get properties for {backend_name}: {e}")
+            return {
+                "status": "error",
+                "message": f"Calibration data not available for {backend_name}. "
+                "This may be a simulator or the backend doesn't provide calibration data.",
+            }
+
+        if properties is None:
+            return {
+                "status": "error",
+                "message": f"No calibration data available for {backend_name}. "
+                "This is likely a simulator backend.",
+            }
+
+        # Determine which qubits to report on
+        if qubit_indices is None:
+            # Default to first 10 qubits or all if fewer
+            qubit_indices = list(range(min(10, num_qubits)))
+        else:
+            # Validate provided indices
+            qubit_indices = [q for q in qubit_indices if 0 <= q < num_qubits]
+
+        # Collect qubit calibration data
+        qubit_data = []
+        for qubit in qubit_indices:
+            try:
+                qubit_info = {
+                    "qubit": qubit,
+                    "t1_us": None,
+                    "t2_us": None,
+                    "readout_error": None,
+                    "prob_meas0_prep1": None,
+                    "prob_meas1_prep0": None,
+                }
+
+                # Get T1 time (in microseconds)
+                try:
+                    t1 = properties.t1(qubit)
+                    if t1 is not None:
+                        # Convert to microseconds if needed (usually already in us)
+                        qubit_info["t1_us"] = round(t1 * 1e6, 2) if t1 < 1 else round(t1, 2)
+                except Exception:
+                    pass
+
+                # Get T2 time (in microseconds)
+                try:
+                    t2 = properties.t2(qubit)
+                    if t2 is not None:
+                        qubit_info["t2_us"] = round(t2 * 1e6, 2) if t2 < 1 else round(t2, 2)
+                except Exception:
+                    pass
+
+                # Get readout error
+                try:
+                    readout_err = properties.readout_error(qubit)
+                    if readout_err is not None:
+                        qubit_info["readout_error"] = round(readout_err, 6)
+                except Exception:
+                    pass
+
+                # Get measurement preparation errors if available
+                try:
+                    prob_meas0_prep1 = properties.prob_meas0_prep1(qubit)
+                    if prob_meas0_prep1 is not None:
+                        qubit_info["prob_meas0_prep1"] = round(prob_meas0_prep1, 6)
+                except Exception:
+                    pass
+
+                try:
+                    prob_meas1_prep0 = properties.prob_meas1_prep0(qubit)
+                    if prob_meas1_prep0 is not None:
+                        qubit_info["prob_meas1_prep0"] = round(prob_meas1_prep0, 6)
+                except Exception:
+                    pass
+
+                qubit_data.append(qubit_info)
+            except Exception as qe:
+                logger.warning(f"Failed to get calibration for qubit {qubit}: {qe}")
+                qubit_data.append({"qubit": qubit, "error": str(qe)})
+
+        # Collect gate error data for common gates
+        gate_errors = []
+        common_gates = ["x", "sx", "rz", "cx", "ecr", "cz"]
+
+        for gate in common_gates:
+            try:
+                # Get gate errors for single-qubit gates on requested qubits
+                if gate in ["x", "sx", "rz"]:
+                    for qubit in qubit_indices[:5]:  # Limit to first 5 qubits
+                        try:
+                            error = properties.gate_error(gate, [qubit])
+                            if error is not None:
+                                gate_errors.append({
+                                    "gate": gate,
+                                    "qubits": [qubit],
+                                    "error": round(error, 6),
+                                })
+                        except Exception:
+                            pass
+                # Get gate errors for two-qubit gates
+                elif gate in ["cx", "ecr", "cz"]:
+                    # Get a few two-qubit gate errors from coupling map
+                    try:
+                        config = backend.configuration()
+                        coupling_map = getattr(config, "coupling_map", [])
+                        for edge in coupling_map[:5]:  # Limit to first 5 edges
+                            try:
+                                error = properties.gate_error(gate, edge)
+                                if error is not None:
+                                    gate_errors.append({
+                                        "gate": gate,
+                                        "qubits": edge,
+                                        "error": round(error, 6),
+                                    })
+                            except Exception:
+                                pass
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+        # Get last calibration time if available
+        last_update = None
+        try:
+            last_update = str(properties.last_update_date)
+        except Exception:
+            pass
+
+        return {
+            "status": "success",
+            "backend_name": backend_name,
+            "num_qubits": num_qubits,
+            "last_calibration": last_update,
+            "qubit_calibration": qubit_data,
+            "gate_errors": gate_errors,
+            "note": "T1 and T2 times are in microseconds. "
+            "Errors are probabilities (0-1). "
+            f"Showing data for qubits {qubit_indices}.",
+        }
+
+    except Exception as e:
+        logger.error(f"Failed to get backend calibration: {e}")
+        return {
+            "status": "error",
+            "message": f"Failed to get backend calibration: {e!s}",
+        }
+
+
+@with_sync
 async def list_my_jobs(limit: int = 10) -> dict[str, Any]:
     """
     List user's recent jobs.

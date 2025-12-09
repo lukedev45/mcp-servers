@@ -369,6 +369,28 @@ async def get_backend_calibration(
                 "This is likely a simulator backend.",
             }
 
+        # Get faulty qubits and gates (important for avoiding failed jobs)
+        faulty_qubits = []
+        faulty_gates = []
+        try:
+            faulty_qubits = list(properties.faulty_qubits())
+        except Exception:
+            pass
+
+        try:
+            # faulty_gates returns list of Gate objects, extract relevant info
+            faulty_gates_raw = properties.faulty_gates()
+            for gate in faulty_gates_raw:
+                try:
+                    faulty_gates.append({
+                        "gate": gate.gate,
+                        "qubits": list(gate.qubits),
+                    })
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
         # Determine which qubits to report on
         if qubit_indices is None:
             # Default to first 10 qubits or all if fewer
@@ -385,10 +407,15 @@ async def get_backend_calibration(
                     "qubit": qubit,
                     "t1_us": None,
                     "t2_us": None,
+                    "frequency_ghz": None,
                     "readout_error": None,
                     "prob_meas0_prep1": None,
                     "prob_meas1_prep0": None,
+                    "operational": True,
                 }
+
+                # Check if qubit is faulty
+                qubit_info["operational"] = qubit not in faulty_qubits
 
                 # Get T1 time (in microseconds)
                 try:
@@ -404,6 +431,15 @@ async def get_backend_calibration(
                     t2 = properties.t2(qubit)
                     if t2 is not None:
                         qubit_info["t2_us"] = round(t2 * 1e6, 2) if t2 < 1 else round(t2, 2)
+                except Exception:
+                    pass
+
+                # Get qubit frequency (in GHz)
+                try:
+                    freq = properties.frequency(qubit)
+                    if freq is not None:
+                        # Convert Hz to GHz
+                        qubit_info["frequency_ghz"] = round(freq / 1e9, 6)
                 except Exception:
                     pass
 
@@ -488,11 +524,13 @@ async def get_backend_calibration(
             "backend_name": backend_name,
             "num_qubits": num_qubits,
             "last_calibration": last_update,
+            "faulty_qubits": faulty_qubits,
+            "faulty_gates": faulty_gates,
             "qubit_calibration": qubit_data,
             "gate_errors": gate_errors,
-            "note": "T1 and T2 times are in microseconds. "
-            "Errors are probabilities (0-1). "
-            f"Showing data for qubits {qubit_indices}.",
+            "note": "T1/T2 in microseconds, frequency in GHz, errors are probabilities (0-1). "
+            f"Showing data for qubits {qubit_indices}. "
+            "Check faulty_qubits/faulty_gates before submitting jobs.",
         }
 
     except Exception as e:

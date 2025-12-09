@@ -95,9 +95,14 @@ async def get_backend_calibration_tool(
 
     Returns:
         Calibration data including:
+        - processor_type: Processor family (e.g., 'Eagle r3', 'Heron')
+        - backend_version: Backend software/hardware version
         - T1 and T2 coherence times (in microseconds)
+        - Qubit frequency (in GHz)
         - Readout errors for each qubit
         - Gate errors for common gates (x, sx, cx, etc.)
+        - faulty_qubits: List of non-operational qubit indices
+        - faulty_gates: List of non-operational gates with affected qubits
         - Last calibration timestamp
     """
     return await get_backend_calibration(backend_name, qubit_indices)

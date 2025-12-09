@@ -200,57 +200,41 @@ async def list_backends() -> dict[str, Any]:
 
         backends = service.backends()
         backend_list = []
-        skipped_backends = []
 
         for backend in backends:
             backend_name = getattr(backend, "name", "unknown")
+            num_qubits = getattr(backend, "num_qubits", 0)
+            simulator = getattr(backend, "simulator", False)
+
+            # Try to get status (this is where API errors can occur)
             try:
-                # Get basic info first (these shouldn't fail)
-                num_qubits = getattr(backend, "num_qubits", 0)
-                simulator = getattr(backend, "simulator", False)
+                status = backend.status()
+                backend_info = {
+                    "name": backend_name,
+                    "num_qubits": num_qubits,
+                    "simulator": simulator,
+                    "operational": status.operational,
+                    "pending_jobs": status.pending_jobs,
+                    "status_msg": status.status_msg,
+                }
+            except Exception as status_err:
+                logger.warning(f"Failed to get status for backend {backend_name}: {status_err}")
+                backend_info = {
+                    "name": backend_name,
+                    "num_qubits": num_qubits,
+                    "simulator": simulator,
+                    "operational": False,
+                    "pending_jobs": 0,
+                    "status_msg": "Status unavailable",
+                }
 
-                # Try to get status (this is where API errors can occur)
-                try:
-                    status = backend.status()
-                    backend_info = {
-                        "name": backend_name,
-                        "num_qubits": num_qubits,
-                        "simulator": simulator,
-                        "operational": status.operational,
-                        "pending_jobs": status.pending_jobs,
-                        "status_msg": status.status_msg,
-                    }
-                except Exception as status_err:
-                    logger.warning(f"Failed to get status for backend {backend_name}: {status_err}")
-                    backend_info = {
-                        "name": backend_name,
-                        "num_qubits": num_qubits,
-                        "simulator": simulator,
-                        "operational": False,
-                        "pending_jobs": 0,
-                        "status_msg": "Status unavailable",
-                    }
+            backend_list.append(backend_info)
 
-                backend_list.append(backend_info)
-            except Exception as be:
-                # If even getting basic backend info fails, skip it entirely
-                logger.warning(f"Skipping backend {backend_name} due to error: {be}")
-                skipped_backends.append(backend_name)
-                continue
-
-        result = {
+        return {
             "status": "success",
             "backends": backend_list,
             "total_backends": len(backend_list),
         }
-
-        if skipped_backends:
-            result["skipped_backends"] = skipped_backends
-            result["note"] = (
-                f"Some backends ({len(skipped_backends)}) were skipped due to API errors"
-            )
-
-        return result
 
     except Exception as e:
         logger.error(f"Failed to list backends: {e}")

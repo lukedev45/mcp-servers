@@ -105,7 +105,7 @@ export QISKIT_IBM_TOKEN="your-ibm-quantum-token"
 # Find your available instances by running:
 #   python -c "from qiskit_ibm_runtime import QiskitRuntimeService; s = QiskitRuntimeService(); print([i['name'] for i in s.instances()])"
 # Or at: https://quantum.ibm.com/ -> Administration -> Instances
-export QISKIT_IBM_INSTANCE="your-instance-name"
+export QISKIT_IBM_RUNTIME_MCP_INSTANCE="your-instance-name"
 
 # LLM API key (depends on provider)
 export OPENAI_API_KEY="your-openai-api-key"       # For OpenAI
@@ -127,7 +127,7 @@ Or create a `.env` file:
 
 ```env
 QISKIT_IBM_TOKEN=your-ibm-quantum-token
-QISKIT_IBM_INSTANCE=your-instance-name  # Recommended for faster startup
+QISKIT_IBM_RUNTIME_MCP_INSTANCE=your-instance-name  # Recommended for faster startup
 OPENAI_API_KEY=your-openai-api-key
 
 # For Watsonx
@@ -281,7 +281,7 @@ async def create_custom_agent():
             "args": [],
             "env": {
                 "QISKIT_IBM_TOKEN": os.getenv("QISKIT_IBM_TOKEN", ""),
-                "QISKIT_IBM_INSTANCE": os.getenv("QISKIT_IBM_INSTANCE", ""),
+                "QISKIT_IBM_RUNTIME_MCP_INSTANCE": os.getenv("QISKIT_IBM_RUNTIME_MCP_INSTANCE", ""),
             },
         }
     })
@@ -317,7 +317,7 @@ asyncio.run(create_custom_agent())
 - Check your network connection to IBM Quantum services
 
 **Slow startup (10-30+ seconds)**
-- Set `QISKIT_IBM_INSTANCE` environment variable to skip instance lookup
+- Set `QISKIT_IBM_RUNTIME_MCP_INSTANCE` environment variable to skip instance lookup
 - Without an instance specified, the service searches all available instances
 - Find your available instances by running:
   ```python

@@ -255,7 +255,7 @@ def get_mcp_client() -> MultiServerMCPClient:
                 "args": [],
                 "env": {
                     "QISKIT_IBM_TOKEN": os.getenv("QISKIT_IBM_TOKEN", ""),
-                    "QISKIT_IBM_INSTANCE": os.getenv("QISKIT_IBM_INSTANCE", ""),
+                    "QISKIT_IBM_RUNTIME_MCP_INSTANCE": os.getenv("QISKIT_IBM_RUNTIME_MCP_INSTANCE", ""),
                 },
             }
         }

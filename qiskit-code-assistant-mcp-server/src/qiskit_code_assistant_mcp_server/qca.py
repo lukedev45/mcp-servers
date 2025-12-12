@@ -10,20 +10,27 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
+import asyncio
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from qiskit_code_assistant_mcp_server.constants import (
+    QCA_REQUEST_TIMEOUT,
     QCA_TOOL_API_BASE,
     QCA_TOOL_MODEL_NAME,
-    QCA_REQUEST_TIMEOUT,
 )
-from qiskit_code_assistant_mcp_server.utils import make_qca_request
+from qiskit_code_assistant_mcp_server.utils import (
+    close_http_client,
+    make_qca_request,
+    with_sync,
+)
+
 
 logger = logging.getLogger(__name__)
 
 
-async def qca_list_models() -> Dict[str, Any]:
+@with_sync
+async def qca_list_models() -> dict[str, Any]:
     """List the available models from the Qiskit Code Assistant."""
     try:
         logger.info("Fetching available models from Qiskit Code Assistant")
@@ -42,11 +49,75 @@ async def qca_list_models() -> Dict[str, Any]:
             logger.info(f"Retrieved {len(models)} models from Qiskit Code Assistant")
             return {"status": "success", "models": models}
     except Exception as e:
-        logger.error(f"Exception in qca_list_models: {str(e)}")
-        return {"status": "error", "message": f"Failed to list models: {str(e)}"}
+        logger.error(f"Exception in qca_list_models: {e!s}")
+        return {"status": "error", "message": f"Failed to list models: {e!s}"}
 
 
-async def qca_get_model(model_id: str) -> Dict[str, Any]:
+def _select_available_model() -> str:
+    """
+    Select an available model from the Qiskit Code Assistant service.
+
+    This function checks if the configured default model is available.
+    If not, it selects the first available model as a fallback.
+
+    Returns:
+        The model name to use for completions
+    """
+    try:
+        # Run the async qca_list_models function synchronously
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            models_result = loop.run_until_complete(qca_list_models())
+            # Close the HTTP client since it's attached to this loop which we are about to close
+            loop.run_until_complete(close_http_client())
+        finally:
+            loop.close()
+
+        if models_result.get("status") == "success":
+            available_models = models_result.get("models", [])
+            model_ids: list[str] = [
+                model.get("id") for model in available_models if model.get("id")
+            ]
+
+            # Check if default model is available
+            if QCA_TOOL_MODEL_NAME in model_ids:
+                logger.info(f"Default model '{QCA_TOOL_MODEL_NAME}' is available")
+                return QCA_TOOL_MODEL_NAME
+
+            # Default model not available, use first available model
+            if model_ids:
+                selected_model = model_ids[0]
+                logger.warning(
+                    f"Default model '{QCA_TOOL_MODEL_NAME}' is not available. "
+                    f"Using '{selected_model}' instead. "
+                    f"Available models: {', '.join(model_ids)}"
+                )
+                return selected_model
+
+            # No models available
+            logger.error("No models available from Qiskit Code Assistant service")
+        else:
+            error_msg = models_result.get("message", "Unknown error")
+            logger.error(f"Failed to fetch available models: {error_msg}")
+
+    except Exception as e:
+        logger.error(f"Exception while selecting available model: {e!s}")
+
+    # Fallback to configured default if anything goes wrong
+    logger.warning(
+        f"Unable to verify model availability. Using configured default: {QCA_TOOL_MODEL_NAME}"
+    )
+    return QCA_TOOL_MODEL_NAME
+
+
+# Select the model to use at module initialization
+_SELECTED_MODEL_NAME = _select_available_model()
+logger.info(f"Using model: {_SELECTED_MODEL_NAME}")
+
+
+@with_sync
+async def qca_get_model(model_id: str) -> dict[str, Any]:
     """Get the info for a model from the Qiskit Code Assistant.
 
     Args:
@@ -73,11 +144,12 @@ async def qca_get_model(model_id: str) -> Dict[str, Any]:
             logger.info(f"Successfully retrieved model {model_id}")
             return {"status": "success", "model": data}
     except Exception as e:
-        logger.error(f"Exception in qca_get_model for {model_id}: {str(e)}")
-        return {"status": "error", "message": f"Failed to get model: {str(e)}"}
+        logger.error(f"Exception in qca_get_model for {model_id}: {e!s}")
+        return {"status": "error", "message": f"Failed to get model: {e!s}"}
 
 
-async def qca_get_model_disclaimer(model_id: str) -> Dict[str, Any]:
+@with_sync
+async def qca_get_model_disclaimer(model_id: str) -> dict[str, Any]:
     """Get the disclaimer for a model from the Qiskit Code Assistant.
 
     Args:
@@ -96,13 +168,12 @@ async def qca_get_model_disclaimer(model_id: str) -> Dict[str, Any]:
     except Exception as e:
         return {
             "status": "error",
-            "message": f"Failed to get model disclaimer: {str(e)}",
+            "message": f"Failed to get model disclaimer: {e!s}",
         }
 
 
-async def qca_accept_model_disclaimer(
-    model_id: str, disclaimer_id: str
-) -> Dict[str, Any]:
+@with_sync
+async def qca_accept_model_disclaimer(model_id: str, disclaimer_id: str) -> dict[str, Any]:
     """
     Accept the disclaimer for an available model from the Qiskit Code Assistant.
 
@@ -128,10 +199,11 @@ async def qca_accept_model_disclaimer(
         else:
             return {"status": "success", "result": data}
     except Exception as e:
-        return {"status": "error", "message": f"Failed to accept disclaimer: {str(e)}"}
+        return {"status": "error", "message": f"Failed to accept disclaimer: {e!s}"}
 
 
-async def qca_get_completion(prompt: str) -> Dict[str, Any]:
+@with_sync
+async def qca_get_completion(prompt: str) -> dict[str, Any]:
     """
     Get completion for writing, completing, and optimizing quantum code using Qiskit.
 
@@ -153,7 +225,7 @@ async def qca_get_completion(prompt: str) -> Dict[str, Any]:
     try:
         logger.info(f"Requesting code completion for prompt (length: {len(prompt)})")
         url = f"{QCA_TOOL_API_BASE}/v1/completions"
-        body = {"model": QCA_TOOL_MODEL_NAME, "prompt": prompt.strip()}
+        body = {"model": _SELECTED_MODEL_NAME, "prompt": prompt.strip()}
         data = await make_qca_request(url, method="POST", body=body)
 
         if "error" in data:
@@ -176,11 +248,12 @@ async def qca_get_completion(prompt: str) -> Dict[str, Any]:
                 "choices": choices,
             }
     except Exception as e:
-        logger.error(f"Exception in qca_get_completion: {str(e)}")
-        return {"status": "error", "message": f"Failed to get completion: {str(e)}"}
+        logger.error(f"Exception in qca_get_completion: {e!s}")
+        return {"status": "error", "message": f"Failed to get completion: {e!s}"}
 
 
-async def qca_get_rag_completion(prompt: str) -> Dict[str, Any]:
+@with_sync
+async def qca_get_rag_completion(prompt: str) -> dict[str, Any]:
     """
     Get RAG completion for answering conceptual or descriptive questions about Qiskit or Quantum.
 
@@ -192,7 +265,7 @@ async def qca_get_rag_completion(prompt: str) -> Dict[str, Any]:
     """
     try:
         url = f"{QCA_TOOL_API_BASE}/v1/completions"
-        body = {"model": QCA_TOOL_MODEL_NAME, "prompt": prompt, "mode": "rag"}
+        body = {"model": _SELECTED_MODEL_NAME, "prompt": prompt, "mode": "rag"}
         data = await make_qca_request(url, method="POST", body=body)
 
         if "error" in data:
@@ -208,10 +281,11 @@ async def qca_get_rag_completion(prompt: str) -> Dict[str, Any]:
                 "choices": choices,
             }
     except Exception as e:
-        return {"status": "error", "message": f"Failed to get RAG completion: {str(e)}"}
+        return {"status": "error", "message": f"Failed to get RAG completion: {e!s}"}
 
 
-async def qca_accept_completion(completion_id: str) -> Dict[str, Any]:
+@with_sync
+async def qca_accept_completion(completion_id: str) -> dict[str, Any]:
     """
     Accept a suggestion generated by the Qiskit Code Assistant.
 
@@ -238,9 +312,10 @@ async def qca_accept_completion(completion_id: str) -> Dict[str, Any]:
         else:
             return {"status": "success", "result": result}
     except Exception as e:
-        return {"status": "error", "message": f"Failed to accept completion: {str(e)}"}
+        return {"status": "error", "message": f"Failed to accept completion: {e!s}"}
 
 
+@with_sync
 async def qca_get_service_status() -> str:
     """
     Get current Qiskit Code Assistant service status.
@@ -275,8 +350,8 @@ async def qca_get_service_status() -> str:
 
         return f"Qiskit Code Assistant Service Status: {status_info}"
     except Exception as e:
-        logger.error(f"Failed to check service status: {str(e)}")
-        return f"Qiskit Code Assistant Service Status: Error - {str(e)}"
+        logger.error(f"Failed to check service status: {e!s}")
+        return f"Qiskit Code Assistant Service Status: Error - {e!s}"
 
 
 # Assisted by watsonx Code Assistant

@@ -13,8 +13,9 @@
 """Test configuration and fixtures for Qiskit IBM Runtime MCP Server tests."""
 
 import os
-import pytest
 from unittest.mock import Mock, patch
+
+import pytest
 from qiskit_ibm_runtime import QiskitRuntimeService
 
 
@@ -54,17 +55,13 @@ def mock_runtime_service():
     mock_backend1.name = "ibmq_qasm_simulator"
     mock_backend1.num_qubits = 32
     mock_backend1.simulator = True
-    mock_backend1.status.return_value = Mock(
-        operational=True, pending_jobs=0, status_msg="active"
-    )
+    mock_backend1.status.return_value = Mock(operational=True, pending_jobs=0, status_msg="active")
 
     mock_backend2 = Mock()
     mock_backend2.name = "ibm_brisbane"
     mock_backend2.num_qubits = 127
     mock_backend2.simulator = False
-    mock_backend2.status.return_value = Mock(
-        operational=True, pending_jobs=5, status_msg="active"
-    )
+    mock_backend2.status.return_value = Mock(operational=True, pending_jobs=5, status_msg="active")
 
     mock_service.backends.return_value = [mock_backend1, mock_backend2]
     mock_service.backend.return_value = mock_backend2
@@ -88,9 +85,7 @@ def mock_runtime_service():
 @pytest.fixture
 def mock_failed_service():
     """Mock a QiskitRuntimeService that fails initialization."""
-    with patch(
-        "qiskit_ibm_runtime_mcp_server.ibm_runtime.QiskitRuntimeService"
-    ) as mock_qrs:
+    with patch("qiskit_ibm_runtime_mcp_server.ibm_runtime.QiskitRuntimeService") as mock_qrs:
         mock_qrs.side_effect = Exception("Authentication failed")
         mock_qrs.save_account.side_effect = Exception("Invalid token")
         yield mock_qrs

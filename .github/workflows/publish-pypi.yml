@@ -6,12 +6,13 @@ on:
   workflow_dispatch:
     inputs:
       package:
-        description: 'Package to publish (code-assistant, runtime, or both)'
+        description: 'Package to publish'
         required: true
-        default: 'both'
+        default: 'all'
         type: choice
         options:
-          - both
+          - all
+          - meta-package
           - code-assistant
           - runtime
 
@@ -19,7 +20,7 @@ jobs:
   publish-code-assistant:
     if: |
       (github.event_name == 'release' && contains(github.ref, 'code-assistant')) ||
-      (github.event_name == 'workflow_dispatch' && (github.event.inputs.package == 'both' || github.event.inputs.package == 'code-assistant'))
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.package == 'all' || github.event.inputs.package == 'code-assistant'))
     runs-on: ubuntu-latest
     permissions:
       id-token: write  # Required for trusted publishing
@@ -50,7 +51,7 @@ jobs:
   publish-runtime:
     if: |
       (github.event_name == 'release' && contains(github.ref, 'runtime')) ||
-      (github.event_name == 'workflow_dispatch' && (github.event.inputs.package == 'both' || github.event.inputs.package == 'runtime'))
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.package == 'all' || github.event.inputs.package == 'runtime'))
     runs-on: ubuntu-latest
     permissions:
       id-token: write  # Required for trusted publishing
@@ -76,4 +77,40 @@ jobs:
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         packages-dir: qiskit-ibm-runtime-mcp-server/dist/
+        verbose: true
+
+  publish-meta-package:
+    runs-on: ubuntu-latest
+    # Meta-package should be published after individual servers
+    needs: [publish-code-assistant, publish-runtime]
+    # Allow meta-package to run even if individual packages were skipped (already published)
+    if: |
+      always() &&
+      (needs.publish-code-assistant.result == 'success' || needs.publish-code-assistant.result == 'skipped') &&
+      (needs.publish-runtime.result == 'success' || needs.publish-runtime.result == 'skipped') &&
+      ((github.event_name == 'release' && contains(github.ref, 'meta')) ||
+       (github.event_name == 'workflow_dispatch' && (github.event.inputs.package == 'all' || github.event.inputs.package == 'meta-package')))
+    permissions:
+      id-token: write  # Required for trusted publishing
+      contents: read
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        version: "latest"
+
+    - name: Set up Python
+      run: uv python install 3.12
+
+    - name: Build meta-package
+      run: |
+        uv build
+
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        packages-dir: dist/
         verbose: true

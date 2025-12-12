@@ -1,14 +1,33 @@
 [project]
 name = "qiskit-code-assistant-mcp-server"
-version = "0.1.0"
+version = "0.1.1"
 description = "MCP server for the Qiskit Code Assistant"
 readme = "README.md"
-requires-python = ">=3.10,<4.0"
+requires-python = ">=3.10,<3.15"
 dependencies = [
     "fastmcp>=2.8.1",
     "python-dotenv>=1.0.0",
     "httpx>=0.25.0",
     "nest-asyncio>=1.5.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff>=0.11.13",
+    "mypy>=1.15.0",
+    "pre-commit>=3.5.0",
+    "bandit[toml]>=1.7.0",
+]
+test = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-mock>=3.11.0",
+    "pytest-cov>=4.1.0",
+    "httpx>=0.25.0",
+    "respx>=0.20.0",
+]
+all = [
+    "qiskit-code-assistant-mcp-server[dev,test]",
 ]
 [[project.authors]]
 name = "Quantum+AI Team. IBM Quantum"
@@ -26,19 +45,24 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Physics",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
 [project.urls]
-Homepage = "https://github.com/AI4quantum/qiskit-mcp-servers"
-Repository = "https://github.com/AI4quantum/qiskit-mcp-servers"
-Documentation = "https://github.com/AI4quantum/qiskit-mcp-servers/tree/main/qiskit-code-assistant-mcp-server#readme"
-"Bug Tracker" = "https://github.com/AI4quantum/qiskit-mcp-servers/issues"
+Homepage = "https://github.com/Qiskit/mcp-servers"
+Repository = "https://github.com/Qiskit/mcp-servers"
+Documentation = "https://github.com/Qiskit/mcp-servers/tree/main/qiskit-code-assistant-mcp-server#readme"
+"Bug Tracker" = "https://github.com/Qiskit/mcp-servers/issues"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/qiskit_code_assistant_mcp_server"]
 
 [project.scripts]
 qiskit-code-assistant-mcp-server = "qiskit_code_assistant_mcp_server:main"
@@ -47,6 +71,7 @@ qiskit-code-assistant-mcp-server = "qiskit_code_assistant_mcp_server:main"
 dev = [
     "ruff>=0.11.13",
     "mypy>=1.15.0",
+    "bandit[toml]>=1.9.2",
 ]
 test = [
     "pytest>=7.4.0",
@@ -56,3 +81,8 @@ test = [
     "httpx>=0.25.0",
     "respx>=0.20.0",
 ]
+
+# Bandit security configuration
+[tool.bandit]
+skips = ["B101"]  # Skip assert_used check in tests
+exclude_dirs = ["tests", ".venv", "build", "dist"]

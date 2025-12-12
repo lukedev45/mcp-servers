@@ -10,8 +10,8 @@ MCP server for Qiskit transpiler. It supports **AI routing**,
 
 ## Prerequisites
 
-- python>=3.11
-- qiskit-ibm-transpiler>=0.14.3
+- python>=3.10 and <3.14
+- qiskit-ibm-transpiler==0.15.0
 - fastmcp>=2.12.4
 
 ## Installation
@@ -53,11 +53,11 @@ The server will start and listen for MCP connections.
 For frameworks that don't support async operations:
 
 ```python
-from qiskit_ibm_transpiler_mcp_server.sync import (
-    ai_routing_sync,
-    ai_clifford_synthesis_sync,
-    setup_ibm_quantum_account_sync
+from qiskit_ibm_transpiler_mcp_server.qta import (
+    ai_routing,
+    ai_clifford_synthesis
 )
+from qiskit_ibm_transpiler_mcp_server.utils import setup_ibm_quantum_account
 
 from dotenv import load_dotenv
 
@@ -68,18 +68,18 @@ qasm_string = "your_qasm_circuit_here"
 
 # 2. Setup IBM Quantum Account (optional if credentials already configured)
 # Will use saved credentials or environment variable if token not provided
-setup_ibm_quantum_account_sync()
+setup_ibm_quantum_account.sync()
 
 # Works in Jupyter notebooks and DSPy agents
 # 3. AI Clifford Synthesis
 
 # 3.1 AI Routing [Optional]
-routed_circuit = ai_routing_sync(circuit_qasm=qasm_string, backend_name="backend_name")
+routed_circuit = ai_routing.sync(circuit_qasm=qasm_string, backend_name="backend_name")
 routed_qasm_string = routed_circuit['optimized_circuit_qasm']
 print(f"QASM 3.0 routed circuit: {routed_qasm_string}")
 
 # 3.2 AI Clifford Synthesis pass
-clifford_synthesized_circuit = ai_clifford_synthesis_sync(circuit_qasm=routed_qasm_string, backend_name="backend_name")
+clifford_synthesized_circuit = ai_clifford_synthesis.sync(circuit_qasm=routed_qasm_string, backend_name="backend_name")
 print(f"Clifford synthesized quantum circuit: {clifford_synthesized_circuit['optimized_circuit_qasm']}")
 ```
 
@@ -89,20 +89,20 @@ print(f"Clifford synthesized quantum circuit: {clifford_synthesized_circuit['opt
 import dspy
 
 from dotenv import load_dotenv
-from qiskit_ibm_transpiler_mcp_server.sync import (
-    ai_clifford_synthesis_sync,
-    ai_routing_sync,
-    ai_linear_function_synthesis_sync,
-    ai_pauli_network_synthesis_sync,
-    ai_permutation_synthesis_sync,
-    setup_ibm_quantum_account_sync
+from qiskit_ibm_transpiler_mcp_server.qta import (
+    ai_clifford_synthesis,
+    ai_routing,
+    ai_linear_function_synthesis,
+    ai_pauli_network_synthesis,
+    ai_permutation_synthesis
 )
+from qiskit_ibm_transpiler_mcp_server.utils import setup_ibm_quantum_account
 
 
 # Load environment variables (includes QISKIT_IBM_TOKEN)
 load_dotenv()
 
-lm = dspy.LM("your_llm_model_here", api_base="http://localhost:11434", api_key="")
+lm = dspy.LM("your_llm_model_here", api_base="http://localhost:11434", api_key=None)
 dspy.configure(lm=lm)
 
 # The agent will automatically use saved credentials or environment variables
@@ -110,12 +110,12 @@ dspy.configure(lm=lm)
 agent = dspy.ReAct(
     "question -> answer",
     tools=[
-        setup_ibm_quantum_account_sync,
-        ai_routing_sync,
-        ai_clifford_synthesis_sync,
-        ai_linear_function_synthesis_sync,
-        ai_pauli_network_synthesis_sync,
-        ai_permutation_synthesis_sync
+        setup_ibm_quantum_account.sync,
+        ai_routing.sync,
+        ai_clifford_synthesis.sync,
+        ai_linear_function_synthesis.sync,
+        ai_pauli_network_synthesis.sync,
+        ai_permutation_synthesis.sync
     ]
 )
 
@@ -147,7 +147,7 @@ print(result)
 
 ### Setup IBM Account
 Configure IBM Quantum account with API token.
-#### `setup_ibm_quantum_account_tool(token: str = "", channel: str = "ibm_quantum_platform")`
+#### `setup_ibm_quantum_account_tool(token: Optional[str] = None, channel: str = "ibm_quantum_platform")`
 **Parameters:**
 - `token` (optional): IBM Quantum API token. If not provided, the function will:
   1. Check for `QISKIT_IBM_TOKEN` environment variable

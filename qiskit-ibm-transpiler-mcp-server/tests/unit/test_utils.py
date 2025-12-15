@@ -1,20 +1,29 @@
-import pytest
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2025.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+import os
+from unittest.mock import MagicMock, create_autospec, patch
 
-from qiskit_ibm_transpiler_mcp_server.utils import (
-    get_token_from_env,
-    get_backend_service,
-    load_qasm_circuit,
-    setup_ibm_quantum_account,
-)
+import pytest
+from qiskit import QuantumCircuit
+from qiskit_ibm_runtime import IBMBackend
 from qiskit_ibm_transpiler_mcp_server.qiskit_runtime_service_provider import (
     QiskitRuntimeServiceProvider,
 )
-
-from qiskit_ibm_runtime import IBMBackend
-from qiskit import QuantumCircuit
-
-import os
-from unittest.mock import patch, create_autospec, MagicMock
+from qiskit_ibm_transpiler_mcp_server.utils import (
+    get_backend_service,
+    get_token_from_env,
+    load_qasm_circuit,
+    setup_ibm_quantum_account,
+)
 
 
 class TestGetTokenFromEnv:
@@ -98,7 +107,7 @@ class TestLoadQasmCircuit:
 
     def test_load_with_success(self):
         """Load a correct, well-formatted, QASM 3.0 string"""
-        with open("tests/qasm/correct_qasm_1", "r") as f:
+        with open("tests/qasm/correct_qasm_1") as f:
             correct_qasm = f.read()
 
         result = load_qasm_circuit(qasm_string=correct_qasm)
@@ -108,16 +117,13 @@ class TestLoadQasmCircuit:
 
     def test_load_with_failure(self):
         """Load a wrong, bad-formatted, QASM 3.0 string"""
-        with open("tests/qasm/wrong_qasm_1", "r") as f:
+        with open("tests/qasm/wrong_qasm_1") as f:
             wrong_qasm = f.read()
 
         result = load_qasm_circuit(qasm_string=wrong_qasm)
 
         assert result["status"] == "error"
-        assert (
-            result["message"]
-            == "QASM 3.0 string not valid. Cannot be loaded as QuantumCircuit."
-        )
+        assert result["message"] == "QASM 3.0 string not valid. Cannot be loaded as QuantumCircuit."
 
 
 class TestSetupIBMAccount:

@@ -1,12 +1,23 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2025.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+import pytest
 from qiskit_ibm_transpiler_mcp_server.qta import (
-    ai_routing,
     ai_clifford_synthesis,
     ai_linear_function_synthesis,
-    ai_permutation_synthesis,
     ai_pauli_network_synthesis,
+    ai_permutation_synthesis,
+    ai_routing,
 )
 from qiskit_ibm_transpiler_mcp_server.utils import setup_ibm_quantum_account
-import pytest
 
 
 class TestWithSyncDecorator:
@@ -240,9 +251,7 @@ class TestAICliffordSync:
 class TestAILinearFunctionSync:
     """Test AI Linear Function synthesis sync tool."""
 
-    def test_ai_linear_function_sync_success(
-        self, mocker, mock_circuit_qasm, mock_backend
-    ):
+    def test_ai_linear_function_sync_success(self, mocker, mock_circuit_qasm, mock_backend):
         """
         Successful test AI Linear Function synthesis sync tool with mocked backend, QASM quantum circuit and PassManager
         """
@@ -436,9 +445,7 @@ class TestAIPermutationSync:
 class TestAIPauliNetworkSync:
     """Test AI Pauli Network synthesis sync tool."""
 
-    def test_ai_pauli_network_sync_success(
-        self, mocker, mock_circuit_qasm, mock_backend
-    ):
+    def test_ai_pauli_network_sync_success(self, mocker, mock_circuit_qasm, mock_backend):
         """
         Successful test AI Pauli Network synthesis sync tool with mocked backend, QASM quantum circuit and PassManager
         """
@@ -543,9 +550,7 @@ class TestSetupIBMQuantumAccountSync:
             "channel": "ibm_quantum_platform",
             "available_backends": 10,
         }
-        run_async_mock = mocker.patch(
-            "qiskit_ibm_transpiler_mcp_server.utils._run_async"
-        )
+        run_async_mock = mocker.patch("qiskit_ibm_transpiler_mcp_server.utils._run_async")
         run_async_mock.return_value = mock_response
         result = setup_ibm_quantum_account.sync("test_token")
         assert result["status"] == "success"
@@ -560,9 +565,7 @@ class TestSetupIBMQuantumAccountSync:
             "available_backends": 5,
         }
 
-        run_async_mock = mocker.patch(
-            "qiskit_ibm_transpiler_mcp_server.utils._run_async"
-        )
+        run_async_mock = mocker.patch("qiskit_ibm_transpiler_mcp_server.utils._run_async")
         run_async_mock.return_value = mock_response
         result = setup_ibm_quantum_account.sync("")
 

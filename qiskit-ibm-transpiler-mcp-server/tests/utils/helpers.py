@@ -1,5 +1,17 @@
-from qiskit import QuantumCircuit
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2025.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 from typing import Any
+
+from qiskit import QuantumCircuit
 from qiskit.qasm3 import loads
 
 
@@ -19,14 +31,22 @@ def calculate_2q_count_and_depth_improvement(
     circuit2 = loads(circuit2_qasm)
     # Calculate improvement
     circuit1_gates = return_2q_count_and_depth(circuit1).get("2q_gates")
-    circuit2_gates = return_2q_count_and_depth(circuit2).get("2q_depth")
-    improvement_2q_gates = ((circuit1_gates - circuit2_gates) / circuit1_gates) * 100
+    circuit2_gates = return_2q_count_and_depth(circuit2).get("2q_gates")
+
+    if circuit1_gates == 0:
+        improvement_2q_gates = 0.0
+    else:
+        improvement_2q_gates = ((circuit1_gates - circuit2_gates) / circuit1_gates) * 100
 
     circuit1_depth = return_2q_count_and_depth(circuit1).get("2q_depth")
     circuit2_depth = return_2q_count_and_depth(circuit2).get("2q_depth")
-    improvement_sq_depth = ((circuit1_depth - circuit2_depth) / circuit1_depth) * 100
+
+    if circuit1_depth == 0:
+        improvement_2q_depth = 0.0
+    else:
+        improvement_2q_depth = ((circuit1_depth - circuit2_depth) / circuit1_depth) * 100
 
     return {
         "improvement_2q_gates": improvement_2q_gates,
-        "improvement_2q_depth": improvement_sq_depth,
+        "improvement_2q_depth": improvement_2q_depth,
     }

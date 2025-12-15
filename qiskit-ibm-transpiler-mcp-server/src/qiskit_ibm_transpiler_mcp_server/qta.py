@@ -1,24 +1,79 @@
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2025.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
+import logging
 from typing import Any, Literal
 
+from qiskit.qasm3 import dumps  # type: ignore[import-untyped]
+from qiskit.transpiler import PassManager  # type: ignore[import-untyped]
+from qiskit_ibm_transpiler.ai.routing import AIRouting  # type: ignore[import-untyped]
+from qiskit_ibm_transpiler.ai.synthesis import (  # type: ignore[import-untyped]
+    AICliffordSynthesis,
+    AILinearFunctionSynthesis,
+    AIPauliNetworkSynthesis,
+    AIPermutationSynthesis,
+)
+
 from qiskit_ibm_transpiler_mcp_server.utils import (
-    load_qasm_circuit,
     get_backend_service,
+    load_qasm_circuit,
     with_sync,
 )
 
-from qiskit.transpiler import PassManager  # type: ignore[import-untyped]
-from qiskit.qasm3 import dumps  # type: ignore[import-untyped]
-from qiskit_ibm_transpiler.ai.routing import AIRouting  # type: ignore[import-untyped]
-from qiskit_ibm_transpiler.ai.synthesis import AICliffordSynthesis  # type: ignore[import-untyped]
-from qiskit_ibm_transpiler.ai.synthesis import AILinearFunctionSynthesis
-from qiskit_ibm_transpiler.ai.synthesis import AIPermutationSynthesis
-from qiskit_ibm_transpiler.ai.synthesis import AIPauliNetworkSynthesis
 
-import logging
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+
+async def _run_synthesis_pass(
+    circuit_qasm: str,
+    backend_name: str,
+    synthesis_pass_class: type,
+    pass_kwargs: dict[str, Any],
+) -> dict[str, Any]:
+    """
+    Helper function to run specific synthesis routine
+
+    Args:
+        circuit_qasm: quantum circuit as QASM string to be synthesized.
+        backend_name: Qiskit Runtime Service backend name on which to map the input circuit synthesis
+        synthesis_pass_class: the specific AI synthesis procedure to be executed
+        pass_kwargs: args for the AI synthesis class (e.g., `optimization_preferences`, `layout_mode`, `local_mode`, ...)
+    """
+    if not backend_name or not backend_name.strip():
+        return {
+            "status": "error",
+            "message": "backend is required and cannot be empty",
+        }
+    try:
+        logger.info(f"{synthesis_pass_class.__class__.__name__} pass")
+        backend_service_coroutine = await get_backend_service(backend_name=backend_name)
+        if backend_service_coroutine["status"] == "success":
+            backend_service = backend_service_coroutine["backend"]
+        else:
+            return {"status": "error", "message": backend_service_coroutine["message"]}
+        ai_synthesis_pass = PassManager(
+            [synthesis_pass_class(backend=backend_service, **pass_kwargs)]
+        )
+        loaded_quantum_circuit = load_qasm_circuit(circuit_qasm)
+        if loaded_quantum_circuit["status"] == "success":
+            ai_optimized_circuit = ai_synthesis_pass.run(loaded_quantum_circuit["circuit"])
+            return {
+                "status": "success",
+                "optimized_circuit_qasm": dumps(ai_optimized_circuit),
+            }
+        else:
+            return {"status": "error", "message": loaded_quantum_circuit["message"]}
+    except Exception as e:
+        logger.error(f"{synthesis_pass_class.__class__.__name__} failed: {e}")
+        return {"status": "error", "message": f"{e}"}
 
 
 @with_sync
@@ -27,9 +82,7 @@ async def ai_routing(
     backend_name: str,
     optimization_level: int = 1,
     layout_mode: str = "optimize",
-    optimization_preferences: Literal[
-        "n_cnots", "n_gates", "cnot_layers", "layers", "noise"
-    ]
+    optimization_preferences: Literal["n_cnots", "n_gates", "cnot_layers", "layers", "noise"]
     | list[Literal["n_cnots", "n_gates", "cnot_layers", "layers", "noise"]]
     | None = None,
     local_mode: bool = True,
@@ -49,43 +102,19 @@ async def ai_routing(
         optimization_preferences: indicates what you want to reduce through optimization: number of cnot gates (n_cnots), number of gates (n_gates), number of cnots layers (cnot_layers), number of layers (layers), and/or noise (noise)
         local_mode: determines where the AIRouting pass runs. If False, AIRouting runs remotely through the Qiskit Transpiler Service. If True, the package tries to run the pass in your local environment with a fallback to cloud mode if the required dependencies are not found
     """
-    if not backend_name or not backend_name.strip():
-        return {
-            "status": "error",
-            "message": "backend is required and cannot be empty",
-        }
-    try:
-        logger.info("AI Routing pass")
-        backend_service_coroutine = await get_backend_service(backend_name=backend_name)
-        if backend_service_coroutine["status"] == "success":
-            backend_service = backend_service_coroutine["backend"]
-        else:
-            return {"status": "error", "message": backend_service_coroutine["message"]}
-        ai_routing_pass = PassManager(
-            [
-                AIRouting(
-                    backend=backend_service,
-                    optimization_level=optimization_level,
-                    layout_mode=layout_mode,
-                    optimization_preferences=optimization_preferences,
-                    local_mode=local_mode,
-                ),
-            ]
-        )
-        loaded_quantum_circuit = load_qasm_circuit(circuit_qasm)
-        if loaded_quantum_circuit["status"] == "success":
-            ai_optimized_circuit = ai_routing_pass.run(
-                loaded_quantum_circuit["circuit"]
-            )
-            return {
-                "status": "success",
-                "optimized_circuit_qasm": dumps(ai_optimized_circuit),
-            }
-        else:
-            return {"status": "error", "message": loaded_quantum_circuit["message"]}
-    except Exception as e:
-        logger.error(f"AI Routing failed: {e}")
-        return {"status": "error", "message": f"{e}"}
+    ai_routing_pass_kwargs = {
+        "optimization_level": optimization_level,
+        "layout_mode": layout_mode,
+        "optimization_preferences": optimization_preferences,
+        "local_mode": local_mode,
+    }
+    ai_routing_result = await _run_synthesis_pass(
+        circuit_qasm=circuit_qasm,
+        backend_name=backend_name,
+        synthesis_pass_class=AIRouting,
+        pass_kwargs=ai_routing_pass_kwargs,
+    )
+    return ai_routing_result
 
 
 @with_sync
@@ -104,42 +133,17 @@ async def ai_clifford_synthesis(
         replace_only_if_better: By default, the synthesis will replace the original sub-circuit only if the synthesized sub-circuit improves the original (currently only checking CNOT count), but this can be forced to always replace the circuit by setting replace_only_if_better=False
         local_mode: determines where the AI Clifford synthesis runs. If False, AI Clifford synthesis runs remotely through the Qiskit Transpiler Service. If True, the package tries to run the pass in your local environment with a fallback to cloud mode if the required dependencies are not found
     """
-    if not backend_name or not backend_name.strip():
-        return {
-            "status": "error",
-            "message": "backend is required and cannot be empty",
-        }
-    try:
-        logger.info("AI Clifford synthesis pass")
-        backend_service_coroutine = await get_backend_service(backend_name=backend_name)
-        if backend_service_coroutine["status"] == "success":
-            backend_service = backend_service_coroutine["backend"]
-        else:
-            return {"status": "error", "message": backend_service_coroutine["message"]}
-        ai_optimize_cliffords = PassManager(
-            [
-                AICliffordSynthesis(
-                    backend=backend_service,
-                    replace_only_if_better=replace_only_if_better,
-                    local_mode=local_mode,
-                ),
-            ]
-        )
-
-        loaded_quantum_circuit = load_qasm_circuit(circuit_qasm)
-        if loaded_quantum_circuit["status"] == "success":
-            ai_optimized_circuit = ai_optimize_cliffords.run(
-                loaded_quantum_circuit["circuit"]
-            )
-            return {
-                "status": "success",
-                "optimized_circuit_qasm": dumps(ai_optimized_circuit),
-            }
-        else:
-            return {"status": "error", "message": loaded_quantum_circuit["message"]}
-    except Exception as e:
-        logger.error(f"AI Clifford synthesis pass failed: {e}")
-        return {"status": "error", "message": f"{e}"}
+    ai_clifford_synthesis_pass_kwargs = {
+        "replace_only_if_better": replace_only_if_better,
+        "local_mode": local_mode,
+    }
+    ai_clifford_synthesis_result = await _run_synthesis_pass(
+        circuit_qasm=circuit_qasm,
+        backend_name=backend_name,
+        synthesis_pass_class=AICliffordSynthesis,
+        pass_kwargs=ai_clifford_synthesis_pass_kwargs,
+    )
+    return ai_clifford_synthesis_result
 
 
 @with_sync
@@ -158,41 +162,17 @@ async def ai_linear_function_synthesis(
         replace_only_if_better: By default, the synthesis will replace the original sub-circuit only if the synthesized sub-circuit improves the original (currently only checking CNOT count), but this can be forced to always replace the circuit by setting replace_only_if_better=False
         local_mode: determines where the Linear Function synthesis pass runs. If False, Linear Function synthesis runs remotely through the Qiskit Transpiler Service. If True, the package tries to run the pass in your local environment with a fallback to cloud mode if the required dependencies are not found
     """
-    if not backend_name or not backend_name.strip():
-        return {
-            "status": "error",
-            "message": "backend is required and cannot be empty",
-        }
-    try:
-        logger.info("AI Linear Function synthesis pass")
-        backend_service_coroutine = await get_backend_service(backend_name=backend_name)
-        if backend_service_coroutine["status"] == "success":
-            backend_service = backend_service_coroutine["backend"]
-        else:
-            return {"status": "error", "message": backend_service_coroutine["message"]}
-        ai_optimize_linear_functions = PassManager(
-            [
-                AILinearFunctionSynthesis(
-                    backend=backend_service,
-                    replace_only_if_better=replace_only_if_better,
-                    local_mode=local_mode,
-                ),
-            ]
-        )
-        loaded_quantum_circuit = load_qasm_circuit(circuit_qasm)
-        if loaded_quantum_circuit["status"] == "success":
-            ai_optimized_circuit = ai_optimize_linear_functions.run(
-                loaded_quantum_circuit["circuit"]
-            )
-            return {
-                "status": "success",
-                "optimized_circuit_qasm": dumps(ai_optimized_circuit),
-            }
-        else:
-            return {"status": "error", "message": loaded_quantum_circuit["message"]}
-    except Exception as e:
-        logger.error(f"AI Linear Function synthesis pass failed: {e}")
-        return {"status": "error", "message": f"{e}"}
+    ai_linear_function_synthesis_pass_kwargs = {
+        "replace_only_if_better": replace_only_if_better,
+        "local_mode": local_mode,
+    }
+    ai_linear_function_synthesis_result = await _run_synthesis_pass(
+        circuit_qasm=circuit_qasm,
+        backend_name=backend_name,
+        synthesis_pass_class=AILinearFunctionSynthesis,
+        pass_kwargs=ai_linear_function_synthesis_pass_kwargs,
+    )
+    return ai_linear_function_synthesis_result
 
 
 @with_sync
@@ -211,41 +191,17 @@ async def ai_permutation_synthesis(
         replace_only_if_better: By default, the synthesis will replace the original sub-circuit only if the synthesized sub-circuit improves the original (currently only checking CNOT count), but this can be forced to always replace the circuit by setting replace_only_if_better=False
         local_mode: determines where the AI Permutation synthesis pass runs. If False, AI Permutation synthesis runs remotely through the Qiskit Transpiler Service. If True, the package tries to run the pass in your local environment with a fallback to cloud mode if the required dependencies are not found
     """
-    if not backend_name or not backend_name.strip():
-        return {
-            "status": "error",
-            "message": "backend is required and cannot be empty",
-        }
-    try:
-        logger.info("AI Permutation synthesis pass")
-        backend_service_coroutine = await get_backend_service(backend_name=backend_name)
-        if backend_service_coroutine["status"] == "success":
-            backend_service = backend_service_coroutine["backend"]
-        else:
-            return {"status": "error", "message": backend_service_coroutine["message"]}
-        ai_optimize_permutations = PassManager(
-            [
-                AIPermutationSynthesis(
-                    backend=backend_service,
-                    replace_only_if_better=replace_only_if_better,
-                    local_mode=local_mode,
-                ),
-            ]
-        )
-        loaded_quantum_circuit = load_qasm_circuit(circuit_qasm)
-        if loaded_quantum_circuit["status"] == "success":
-            ai_optimized_circuit = ai_optimize_permutations.run(
-                loaded_quantum_circuit["circuit"]
-            )
-            return {
-                "status": "success",
-                "optimized_circuit_qasm": dumps(ai_optimized_circuit),
-            }
-        else:
-            return {"status": "error", "message": loaded_quantum_circuit["message"]}
-    except Exception as e:
-        logger.error(f"AI Permutations synthesis pass failed: {e}")
-        return {"status": "error", "message": f"{e}"}
+    ai_permutation_synthesis_pass_kwargs = {
+        "replace_only_if_better": replace_only_if_better,
+        "local_mode": local_mode,
+    }
+    ai_permutation_synthesis_result = await _run_synthesis_pass(
+        circuit_qasm=circuit_qasm,
+        backend_name=backend_name,
+        synthesis_pass_class=AIPermutationSynthesis,
+        pass_kwargs=ai_permutation_synthesis_pass_kwargs,
+    )
+    return ai_permutation_synthesis_result
 
 
 @with_sync
@@ -264,38 +220,14 @@ async def ai_pauli_network_synthesis(
         replace_only_if_better: By default, the synthesis will replace the original sub-circuit only if the synthesized sub-circuit improves the original (currently only checking CNOT count), but this can be forced to always replace the circuit by setting replace_only_if_better=False
         local_mode: determines where the AI Pauli Network synthesis pass runs. If False, AI Pauli Network synthesis runs remotely through the Qiskit Transpiler Service. If True, the package tries to run the pass in your local environment with a fallback to cloud mode if the required dependencies are not found
     """
-    if not backend_name or not backend_name.strip():
-        return {
-            "status": "error",
-            "message": "backend is required and cannot be empty",
-        }
-    try:
-        logger.info("AI Pauli Network synthesis pass")
-        backend_service_coroutine = await get_backend_service(backend_name=backend_name)
-        if backend_service_coroutine["status"] == "success":
-            backend_service = backend_service_coroutine["backend"]
-        else:
-            return {"status": "error", "message": backend_service_coroutine["message"]}
-        ai_optimize_pauli_network = PassManager(
-            [
-                AIPauliNetworkSynthesis(
-                    backend=backend_service,
-                    replace_only_if_better=replace_only_if_better,
-                    local_mode=local_mode,
-                ),
-            ]
-        )
-        loaded_quantum_circuit = load_qasm_circuit(circuit_qasm)
-        if loaded_quantum_circuit["status"] == "success":
-            ai_optimized_circuit = ai_optimize_pauli_network.run(
-                loaded_quantum_circuit["circuit"]
-            )
-            return {
-                "status": "success",
-                "optimized_circuit_qasm": dumps(ai_optimized_circuit),
-            }
-        else:
-            return {"status": "error", "message": loaded_quantum_circuit["message"]}
-    except Exception as e:
-        logger.error(f"AI Pauli Network synthesis pass failed: {e}")
-        return {"status": "error", "message": f"{e}"}
+    ai_pauli_network_synthesis_pass_kwargs = {
+        "replace_only_if_better": replace_only_if_better,
+        "local_mode": local_mode,
+    }
+    ai_pauli_network_synthesis_result = await _run_synthesis_pass(
+        circuit_qasm=circuit_qasm,
+        backend_name=backend_name,
+        synthesis_pass_class=AIPauliNetworkSynthesis,
+        pass_kwargs=ai_pauli_network_synthesis_pass_kwargs,
+    )
+    return ai_pauli_network_synthesis_result

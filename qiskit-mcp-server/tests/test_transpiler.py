@@ -73,11 +73,11 @@ class TestTranspileCircuit:
     ) -> None:
         """Test transpiling with a preset basis gate set."""
         result = await transpile_circuit(
-            simple_circuit_qasm, basis_gates="ibm_default"
+            simple_circuit_qasm, basis_gates="ibm_eagle"
         )
 
         assert result["status"] == "success"
-        assert result["basis_gates"] == ["id", "rz", "sx", "x", "cx"]
+        assert result["basis_gates"] == ["id", "rz", "sx", "x", "ecr", "reset"]
 
     @pytest.mark.asyncio
     async def test_transpile_with_custom_basis_gates(
@@ -250,9 +250,9 @@ class TestGetAvailableBasisGates:
 
         assert result["status"] == "success"
         assert "basis_gate_sets" in result
-        assert "ibm_default" in result["basis_gate_sets"]
+        assert "ibm_eagle" in result["basis_gate_sets"]
         assert "ibm_heron" in result["basis_gate_sets"]
-        assert "gates" in result["basis_gate_sets"]["ibm_default"]
+        assert "gates" in result["basis_gate_sets"]["ibm_eagle"]
 
 
 class TestGetAvailableTopologies:
@@ -268,6 +268,7 @@ class TestGetAvailableTopologies:
         assert "linear" in result["topologies"]
         assert "ring" in result["topologies"]
         assert "grid" in result["topologies"]
+        assert "heavy_hex" in result["topologies"]
 
 
 class TestGetTranspilerInfo:
@@ -283,6 +284,96 @@ class TestGetTranspilerInfo:
         assert "stages" in result["transpiler_info"]
         assert "optimization_levels" in result["transpiler_info"]
         assert "usage_tips" in result
+
+    @pytest.mark.asyncio
+    async def test_transpiler_info_includes_limits(self) -> None:
+        """Test that transpiler info includes circuit size limits."""
+        result = await get_transpiler_info()
+
+        assert result["status"] == "success"
+        assert "limits" in result["transpiler_info"]
+        assert "max_qubits" in result["transpiler_info"]["limits"]
+        assert "max_gates" in result["transpiler_info"]["limits"]
+
+
+class TestInputValidation:
+    """Tests for input validation."""
+
+    @pytest.mark.asyncio
+    async def test_initial_layout_wrong_length(
+        self, simple_circuit_qasm: str
+    ) -> None:
+        """Test that wrong initial_layout length returns error."""
+        # simple_circuit_qasm has 2 qubits, provide 3 layout values
+        result = await transpile_circuit(
+            simple_circuit_qasm, initial_layout=[0, 1, 2]
+        )
+
+        assert result["status"] == "error"
+        assert "initial_layout" in result["message"]
+        assert "2 qubits" in result["message"]
+
+    @pytest.mark.asyncio
+    async def test_initial_layout_duplicate_qubits(
+        self, simple_circuit_qasm: str
+    ) -> None:
+        """Test that duplicate qubit indices in initial_layout returns error."""
+        result = await transpile_circuit(
+            simple_circuit_qasm, initial_layout=[0, 0]
+        )
+
+        assert result["status"] == "error"
+        assert "duplicate" in result["message"].lower()
+
+    @pytest.mark.asyncio
+    async def test_initial_layout_negative_qubit(
+        self, simple_circuit_qasm: str
+    ) -> None:
+        """Test that negative qubit index in initial_layout returns error."""
+        result = await transpile_circuit(
+            simple_circuit_qasm, initial_layout=[-1, 1]
+        )
+
+        assert result["status"] == "error"
+        assert "negative" in result["message"].lower()
+
+    @pytest.mark.asyncio
+    async def test_valid_initial_layout(self, simple_circuit_qasm: str) -> None:
+        """Test that valid initial_layout works correctly."""
+        result = await transpile_circuit(
+            simple_circuit_qasm, initial_layout=[0, 1]
+        )
+
+        assert result["status"] == "success"
+
+    @pytest.mark.asyncio
+    async def test_circuit_exceeds_max_qubits(self) -> None:
+        """Test that circuits exceeding max qubits return error."""
+        # Create a circuit with 101 qubits (exceeds MAX_QUBITS=100)
+        large_circuit_qasm = """OPENQASM 2.0;
+include "qelib1.inc";
+qreg q[101];
+creg c[101];
+h q[0];
+"""
+        result = await transpile_circuit(large_circuit_qasm)
+
+        assert result["status"] == "error"
+        assert "101 qubits" in result["message"]
+        assert "100" in result["message"]
+
+    @pytest.mark.asyncio
+    async def test_optimization_level_3_includes_note(
+        self, simple_circuit_qasm: str
+    ) -> None:
+        """Test that optimization level 3 results include a performance note."""
+        result = await transpile_circuit(
+            simple_circuit_qasm, optimization_level=3
+        )
+
+        assert result["status"] == "success"
+        assert "note" in result
+        assert "level 3" in result["note"].lower() or "slower" in result["note"].lower()
 
 
 class TestSyncInterface:

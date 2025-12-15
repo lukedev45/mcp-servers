@@ -19,6 +19,7 @@ levels and custom configurations.
 
 import logging
 import math
+import os
 from typing import Any
 
 from qiskit import QuantumCircuit, qasm2, qasm3
@@ -30,24 +31,54 @@ from qiskit_mcp_server.utils import with_sync
 
 logger = logging.getLogger(__name__)
 
-# Common basis gate sets for different backends
+# Circuit size limits to prevent resource exhaustion
+# Can be overridden via environment variables
+MAX_QUBITS = int(os.environ.get("QISKIT_MCP_MAX_QUBITS", "100"))
+MAX_GATES = int(os.environ.get("QISKIT_MCP_MAX_GATES", "10000"))
+
+# IBM Quantum basis gate sets
+# Eagle r3 processors use ECR as the native 2-qubit gate
+# Heron processors use CZ as the native 2-qubit gate
 BASIS_GATE_SETS: dict[str, list[str]] = {
-    "ibm_default": ["id", "rz", "sx", "x", "cx"],
-    "ibm_eagle": ["id", "rz", "sx", "x", "cx", "reset"],
-    "ibm_heron": ["id", "rz", "sx", "x", "cz", "reset"],
-    "generic_clifford_t": ["h", "s", "t", "cx"],
-    "ion_trap": ["rx", "ry", "rz", "rxx"],
-    "superconducting": ["id", "rz", "sx", "x", "cx"],
+    "ibm_eagle": ["id", "rz", "sx", "x", "ecr", "reset"],  # Eagle r3 (127 qubits)
+    "ibm_heron": ["id", "rz", "sx", "x", "cz", "reset"],  # Heron r1/r2 (133-156 qubits)
+    "ibm_legacy": ["id", "rz", "sx", "x", "cx", "reset"],  # Older IBM systems
 }
 
 # Common coupling map topologies
 COUPLING_MAP_TOPOLOGIES: dict[str, str] = {
     "linear": "Linear chain topology (qubit i connected to i+1)",
     "ring": "Ring topology (linear with wraparound)",
-    "grid": "2D grid topology",
-    "full": "All-to-all connectivity",
-    "heavy_hex": "IBM Heavy-hex topology (used in Eagle/Heron processors)",
+    "grid": "2D grid topology (roughly square)",
+    "heavy_hex": "IBM heavy-hex topology (used by Eagle/Heron processors)",
+    "full": "All-to-all connectivity (no routing needed)",
 }
+
+
+def _create_topology(topology: str, num_qubits: int) -> CouplingMap | None:
+    """Create a CouplingMap for the given topology name.
+
+    Uses Qiskit's built-in CouplingMap factory methods where available.
+    """
+    if topology == "linear":
+        return CouplingMap.from_line(num_qubits)
+    if topology == "ring":
+        return CouplingMap.from_ring(num_qubits)
+    if topology == "full":
+        return None  # None means all-to-all in Qiskit
+    if topology == "grid":
+        # Create a roughly square grid
+        rows = math.ceil(math.sqrt(num_qubits))
+        cols = math.ceil(num_qubits / rows)
+        return CouplingMap.from_grid(rows, cols)
+    if topology == "heavy_hex":
+        # Heavy-hex with distance d has approximately 5*d^2 - 2*d - 1 qubits
+        d = 1
+        while 5 * d * d - 2 * d - 1 < num_qubits and d < 20:
+            d += 1
+        logger.debug(f"Using heavy_hex with distance={d} for {num_qubits} qubits")
+        return CouplingMap.from_heavy_hex(d)
+    return None  # Unknown topology
 
 
 def _parse_coupling_map(
@@ -61,39 +92,25 @@ def _parse_coupling_map(
 
     Returns:
         CouplingMap object or None for all-to-all connectivity
+
+    Raises:
+        ValueError: If topology name is unknown
     """
     if coupling_map is None:
         return None
 
     if isinstance(coupling_map, str):
         topology = coupling_map.lower()
-        if topology == "linear":
-            edges = [[i, i + 1] for i in range(num_qubits - 1)]
-            edges += [[i + 1, i] for i in range(num_qubits - 1)]
-            return CouplingMap(edges)
-        elif topology == "ring":
-            edges = [[i, (i + 1) % num_qubits] for i in range(num_qubits)]
-            edges += [[(i + 1) % num_qubits, i] for i in range(num_qubits)]
-            return CouplingMap(edges)
-        elif topology == "full":
-            return None  # None means all-to-all in Qiskit
-        elif topology == "grid":
-            # Create a roughly square grid
-            cols = math.ceil(math.sqrt(num_qubits))
-            edges = []
-            for i in range(num_qubits):
-                # Right neighbor
-                if (i + 1) % cols != 0 and i + 1 < num_qubits:
-                    edges.append([i, i + 1])
-                    edges.append([i + 1, i])
-                # Bottom neighbor
-                if i + cols < num_qubits:
-                    edges.append([i, i + cols])
-                    edges.append([i + cols, i])
-            return CouplingMap(edges) if edges else None
-        else:
-            raise ValueError(f"Unknown topology: {topology}. "
-                           f"Available: {list(COUPLING_MAP_TOPOLOGIES.keys())}")
+        logger.debug(f"Generating {topology} topology for {num_qubits} qubits")
+
+        if topology not in COUPLING_MAP_TOPOLOGIES:
+            logger.warning(f"Unknown topology requested: {topology}")
+            raise ValueError(
+                f"Unknown topology: {topology}. "
+                f"Available: {list(COUPLING_MAP_TOPOLOGIES.keys())}"
+            )
+
+        return _create_topology(topology, num_qubits)
 
     # Assume it's a list of edges
     return CouplingMap(coupling_map)
@@ -117,16 +134,21 @@ def _circuit_to_dict(circuit: QuantumCircuit) -> dict[str, Any]:
     # Calculate depth
     depth = circuit.depth()
 
-    # Get QASM representation
+    # Get QASM representation with explicit error tracking
+    qasm_str: str | None = None
+    qasm_error: str | None = None
+
     try:
         qasm_str = qasm2.dumps(circuit)
-    except Exception:
+    except Exception as e:
+        logger.debug(f"QASM 2.0 export failed: {e}, trying QASM 3.0")
         try:
             qasm_str = qasm3.dumps(circuit)
-        except Exception:
-            qasm_str = None
+        except Exception as e2:
+            qasm_error = f"Circuit cannot be exported to QASM (may contain unsupported gates): {e2}"
+            logger.debug(qasm_error)
 
-    return {
+    result: dict[str, Any] = {
         "num_qubits": circuit.num_qubits,
         "num_clbits": circuit.num_clbits,
         "depth": depth,
@@ -136,6 +158,11 @@ def _circuit_to_dict(circuit: QuantumCircuit) -> dict[str, Any]:
         "total_operations": sum(op_counts.values()),
         "qasm": qasm_str,
     }
+
+    if qasm_error and qasm_str is None:
+        result["qasm_export_error"] = qasm_error
+
+    return result
 
 
 def _parse_circuit(circuit_input: str) -> QuantumCircuit:
@@ -153,18 +180,98 @@ def _parse_circuit(circuit_input: str) -> QuantumCircuit:
     # Try QASM 2.0 first
     try:
         return qasm2.loads(circuit_input)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug(f"QASM 2.0 parsing failed: {e}")
 
     # Try QASM 3.0
     try:
         return qasm3.loads(circuit_input)
-    except Exception:
-        pass
+    except Exception as e:
+        logger.debug(f"QASM 3.0 parsing failed: {e}")
 
     raise ValueError(
         "Could not parse circuit. Please provide a valid OpenQASM 2.0 or 3.0 string."
     )
+
+
+def _validate_circuit_size(circuit: QuantumCircuit) -> str | None:
+    """Validate circuit is within size limits.
+
+    Returns:
+        Error message if invalid, None if valid
+    """
+    if circuit.num_qubits > MAX_QUBITS:
+        return (
+            f"Circuit has {circuit.num_qubits} qubits, exceeding maximum of {MAX_QUBITS}. "
+            "Large circuits may cause performance issues."
+        )
+    if circuit.size() > MAX_GATES:
+        return (
+            f"Circuit has {circuit.size()} gates, exceeding maximum of {MAX_GATES}. "
+            "Large circuits may cause performance issues."
+        )
+    return None
+
+
+def _validate_initial_layout(
+    initial_layout: list[int] | None, num_qubits: int
+) -> str | None:
+    """Validate initial_layout parameter.
+
+    Returns:
+        Error message if invalid, None if valid
+    """
+    if initial_layout is None:
+        return None
+
+    if len(initial_layout) != num_qubits:
+        return (
+            f"initial_layout has {len(initial_layout)} entries but circuit has "
+            f"{num_qubits} qubits. They must match."
+        )
+
+    # Check for duplicates
+    if len(set(initial_layout)) != len(initial_layout):
+        return "initial_layout contains duplicate qubit indices."
+
+    # Check for negative values
+    if any(q < 0 for q in initial_layout):
+        return "initial_layout contains negative qubit indices."
+
+    return None
+
+
+def _validate_optimization_level(optimization_level: int) -> str | None:
+    """Validate optimization level parameter.
+
+    Returns:
+        Error message if invalid, None if valid
+    """
+    if optimization_level not in [0, 1, 2, 3]:
+        return f"Invalid optimization_level: {optimization_level}. Must be 0, 1, 2, or 3."
+    return None
+
+
+def _resolve_basis_gates(
+    basis_gates: list[str] | str | None,
+) -> tuple[list[str] | None, str | None]:
+    """Resolve basis gates from preset name or pass through list.
+
+    Returns:
+        Tuple of (resolved_basis_gates, error_message)
+    """
+    if basis_gates is None:
+        return None, None
+
+    if isinstance(basis_gates, str):
+        if basis_gates in BASIS_GATE_SETS:
+            return BASIS_GATE_SETS[basis_gates], None
+        return None, (
+            f"Unknown basis gate set: {basis_gates}. "
+            f"Available: {list(BASIS_GATE_SETS.keys())}"
+        )
+
+    return basis_gates, None
 
 
 @with_sync
@@ -215,26 +322,19 @@ async def transpile_circuit(
         except ValueError as e:
             return {"status": "error", "message": str(e)}
 
-        # Validate optimization level
-        if optimization_level not in [0, 1, 2, 3]:
-            return {
-                "status": "error",
-                "message": f"Invalid optimization_level: {optimization_level}. Must be 0, 1, 2, or 3.",
-            }
+        # Validate all inputs - collect first error found
+        validation_error = (
+            _validate_circuit_size(circuit)
+            or _validate_optimization_level(optimization_level)
+            or _validate_initial_layout(initial_layout, circuit.num_qubits)
+        )
+        if validation_error:
+            return {"status": "error", "message": validation_error}
 
         # Resolve basis gates
-        resolved_basis_gates: list[str] | None = None
-        if isinstance(basis_gates, str):
-            if basis_gates in BASIS_GATE_SETS:
-                resolved_basis_gates = BASIS_GATE_SETS[basis_gates]
-            else:
-                return {
-                    "status": "error",
-                    "message": f"Unknown basis gate set: {basis_gates}. "
-                              f"Available: {list(BASIS_GATE_SETS.keys())}",
-                }
-        elif basis_gates is not None:
-            resolved_basis_gates = basis_gates
+        resolved_basis_gates, basis_error = _resolve_basis_gates(basis_gates)
+        if basis_error:
+            return {"status": "error", "message": basis_error}
 
         # Parse coupling map
         try:
@@ -244,6 +344,13 @@ async def transpile_circuit(
 
         # Get original circuit info
         original_info = _circuit_to_dict(circuit)
+
+        # Log warning for level 3 with large circuits
+        if optimization_level == 3 and (circuit.num_qubits > 20 or circuit.size() > 500):
+            logger.warning(
+                f"Using optimization level 3 on circuit with {circuit.num_qubits} qubits "
+                f"and {circuit.size()} gates. This may take a long time."
+            )
 
         # Generate preset pass manager
         pm = generate_preset_pass_manager(
@@ -274,7 +381,7 @@ async def transpile_circuit(
             else 0
         )
 
-        return {
+        result: dict[str, Any] = {
             "status": "success",
             "original_circuit": original_info,
             "transpiled_circuit": transpiled_info,
@@ -288,6 +395,15 @@ async def transpile_circuit(
                 "size_reduction_percent": round(size_reduction_pct, 2),
             },
         }
+
+        # Add warning for level 3
+        if optimization_level == 3:
+            result["note"] = (
+                "Optimization level 3 provides best results but is slower. "
+                "Consider level 2 for faster transpilation with good quality."
+            )
+
+        return result
 
     except Exception as e:
         logger.error(f"Transpilation failed: {e}")
@@ -373,6 +489,7 @@ def _transpile_at_level(
             "size_vs_original": original_info["size"] - transpiled_info["size"],
         }
     except Exception as exc:
+        logger.warning(f"Transpilation at level {level} failed: {exc}")
         return {"error": str(exc)}
 
 
@@ -411,6 +528,13 @@ async def compare_optimization_levels(circuit_qasm: str) -> dict[str, Any]:
             circuit = _parse_circuit(circuit_qasm)
         except ValueError as e:
             return {"status": "error", "message": str(e)}
+
+        # Validate circuit size (more lenient for comparison)
+        if circuit.num_qubits > MAX_QUBITS:
+            return {
+                "status": "error",
+                "message": f"Circuit has {circuit.num_qubits} qubits, exceeding maximum of {MAX_QUBITS}.",
+            }
 
         original_info = _circuit_to_dict(circuit)
         results: dict[str, Any] = {
@@ -464,12 +588,9 @@ async def get_available_basis_gates() -> dict[str, Any]:
 def _get_basis_gate_description(name: str) -> str:
     """Get description for a basis gate set."""
     descriptions = {
-        "ibm_default": "Default IBM Quantum basis gates (Eagle processors)",
-        "ibm_eagle": "IBM Eagle processor basis gates with reset",
-        "ibm_heron": "IBM Heron processor basis gates (uses CZ instead of CX)",
-        "generic_clifford_t": "Universal Clifford+T gate set",
-        "ion_trap": "Common ion trap basis gates",
-        "superconducting": "Generic superconducting qubit basis gates",
+        "ibm_eagle": "IBM Eagle r3 processors (127 qubits, uses ECR)",
+        "ibm_heron": "IBM Heron processors (133-156 qubits, uses CZ)",
+        "ibm_legacy": "Older IBM systems (uses CX)",
     }
     return descriptions.get(name, "Custom basis gate set")
 
@@ -502,7 +623,7 @@ async def get_transpiler_info() -> dict[str, Any]:
         "status": "success",
         "transpiler_info": {
             "description": "The Qiskit transpiler converts quantum circuits to match "
-                          "hardware constraints while optimizing for performance.",
+            "hardware constraints while optimizing for performance.",
             "stages": [
                 {"name": "init", "description": "Unroll and decompose multi-qubit gates"},
                 {"name": "layout", "description": "Map virtual qubits to physical qubits"},
@@ -512,16 +633,20 @@ async def get_transpiler_info() -> dict[str, Any]:
                 {"name": "scheduling", "description": "Add timing/delay instructions"},
             ],
             "optimization_levels": {
-                "0": "No optimization - only decomposition to basis gates",
+                "0": "No optimization - only decomposition to basis gates (fastest)",
                 "1": "Light optimization with default layout",
                 "2": "Medium optimization with noise-aware layout (recommended)",
-                "3": "Heavy optimization for best results (slower)",
+                "3": "Heavy optimization for best results (can be slow for large circuits)",
+            },
+            "limits": {
+                "max_qubits": MAX_QUBITS,
+                "max_gates": MAX_GATES,
             },
         },
         "usage_tips": [
-            "Use optimization_level=2 for most cases (good balance)",
-            "Use optimization_level=3 when circuit quality is critical",
-            "Use optimization_level=0 or 1 for quick iterations",
+            "Use optimization_level=2 for most cases (good balance of speed and quality)",
+            "Use optimization_level=3 only when circuit quality is critical and circuit is small",
+            "Use optimization_level=0 or 1 for quick iterations during development",
             "Specify basis_gates to match your target hardware",
             "Specify coupling_map for hardware-specific routing",
         ],

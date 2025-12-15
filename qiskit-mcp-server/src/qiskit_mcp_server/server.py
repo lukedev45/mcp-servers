@@ -47,7 +47,7 @@ logger = logging.getLogger(__name__)
 mcp = FastMCP("Qiskit")
 
 
-# Tools
+# Tools - Only action-oriented tools, metadata is via resources
 @mcp.tool()
 async def transpile_circuit_tool(
     circuit_qasm: str,
@@ -62,13 +62,17 @@ async def transpile_circuit_tool(
     Takes an OpenQASM circuit and transpiles it to match target hardware
     constraints while optimizing for depth and gate count.
 
+    IMPORTANT: Optimization level 3 can be very slow for large circuits (100+ qubits
+    or 1000+ gates). Consider using level 2 for faster results with good quality.
+
     Args:
-        circuit_qasm: OpenQASM 2.0 or 3.0 string representation of the circuit
+        circuit_qasm: OpenQASM 2.0 or 3.0 string representation of the circuit.
+            Maximum supported: 100 qubits, 10000 gates.
         optimization_level: Optimization level (0-3):
-            - 0: No optimization, just maps to basis gates
+            - 0: No optimization, just maps to basis gates (fastest)
             - 1: Light optimization (default mapping, simple optimizations)
-            - 2: Medium optimization (noise-adaptive layout, more passes) [default]
-            - 3: Heavy optimization (best results, longest compilation time)
+            - 2: Medium optimization (noise-adaptive layout) [default, recommended]
+            - 3: Heavy optimization (best results, can be very slow for large circuits)
         basis_gates: Target basis gates. Can be:
             - A list of gate names (e.g., ["cx", "id", "rz", "sx", "x"])
             - A preset name: "ibm_default", "ibm_eagle", "ibm_heron",
@@ -78,7 +82,8 @@ async def transpile_circuit_tool(
             - A list of [control, target] pairs (e.g., [[0, 1], [1, 2]])
             - A topology name: "linear", "ring", "grid", "full"
             - None for all-to-all connectivity
-        initial_layout: Optional initial qubit layout as list of physical qubit indices
+        initial_layout: Optional initial qubit layout as list of physical qubit indices.
+            Length must match the number of qubits in the circuit.
         seed_transpiler: Random seed for reproducibility
 
     Returns:
@@ -117,6 +122,8 @@ async def compare_optimization_levels_tool(circuit_qasm: str) -> dict[str, Any]:
     Useful for understanding the trade-off between compilation time
     and circuit quality for a specific circuit.
 
+    WARNING: This runs transpilation 4 times. For large circuits, this can be slow.
+
     Args:
         circuit_qasm: OpenQASM 2.0 or 3.0 string representation of the circuit
 
@@ -126,61 +133,35 @@ async def compare_optimization_levels_tool(circuit_qasm: str) -> dict[str, Any]:
     return await compare_optimization_levels(circuit_qasm)
 
 
-@mcp.tool()
-async def get_available_basis_gates_tool() -> dict[str, Any]:
-    """Get available preset basis gate sets.
-
-    Returns information about predefined basis gate sets that can be
-    used with the transpile_circuit tool.
-
-    Returns:
-        Dictionary with available basis gate presets and their gate lists
-    """
-    return await get_available_basis_gates()
-
-
-@mcp.tool()
-async def get_available_topologies_tool() -> dict[str, Any]:
-    """Get available coupling map topologies.
-
-    Returns information about predefined qubit connectivity topologies
-    that can be used with the transpile_circuit tool.
-
-    Returns:
-        Dictionary with available topology names and descriptions
-    """
-    return await get_available_topologies()
-
-
-@mcp.tool()
-async def get_transpiler_info_tool() -> dict[str, Any]:
-    """Get information about the Qiskit transpiler and available options.
-
-    Returns comprehensive documentation about how transpilation works,
-    the six transpiler stages, and usage recommendations.
-
-    Returns:
-        Dictionary with transpiler information and usage guidance
-    """
-    return await get_transpiler_info()
-
-
-# Resources
+# Resources - Static metadata accessible without tool calls
 @mcp.resource("qiskit://transpiler/info", mime_type="application/json")
 async def transpiler_info_resource() -> dict[str, Any]:
-    """Get Qiskit transpiler information and capabilities."""
+    """Get Qiskit transpiler information and capabilities.
+
+    Returns comprehensive documentation about how transpilation works,
+    the six transpiler stages, optimization levels, and usage recommendations.
+    """
     return await get_transpiler_info()
 
 
 @mcp.resource("qiskit://transpiler/basis-gates", mime_type="application/json")
 async def basis_gates_resource() -> dict[str, Any]:
-    """Get available basis gate presets."""
+    """Get available preset basis gate sets.
+
+    Returns information about predefined basis gate sets that can be
+    used with the transpile_circuit tool, including IBM Eagle, Heron,
+    ion trap, and other common gate sets.
+    """
     return await get_available_basis_gates()
 
 
 @mcp.resource("qiskit://transpiler/topologies", mime_type="application/json")
 async def topologies_resource() -> dict[str, Any]:
-    """Get available coupling map topologies."""
+    """Get available coupling map topologies.
+
+    Returns information about predefined qubit connectivity topologies
+    (linear, ring, grid, full) that can be used with the transpile_circuit tool.
+    """
     return await get_available_topologies()
 
 

@@ -1,11 +1,22 @@
-import pytest
+# This code is part of Qiskit.
+#
+# (C) Copyright IBM 2025.
+#
+# This code is licensed under the Apache License, Version 2.0. You may
+# obtain a copy of this license in the LICENSE.txt file in the root directory
+# of this source tree or at http://www.apache.org/licenses/LICENSE-2.0.
+#
+# Any modifications or derivative works of this code must retain this
+# copyright notice, and modified files need to carry a notice indicating
+# that they have been altered from the originals.
 from unittest.mock import MagicMock
-from qiskit_ibm_transpiler_mcp_server.server import mcp
 
-from qiskit_ibm_transpiler_mcp_server.utils import setup_ibm_quantum_account
+import pytest
 from qiskit_ibm_transpiler_mcp_server.qiskit_runtime_service_provider import (
     QiskitRuntimeServiceProvider,
 )
+from qiskit_ibm_transpiler_mcp_server.server import mcp
+from qiskit_ibm_transpiler_mcp_server.utils import setup_ibm_quantum_account
 
 
 class TestMCPServerIntegration:
@@ -21,9 +32,7 @@ class TestMCPServerIntegration:
 
     @pytest.mark.integration
     @pytest.mark.asyncio
-    async def test_service_initialization_flow(
-        self, mocker, mock_env_vars, mock_runtime_service
-    ):
+    async def test_service_initialization_flow(self, mocker, mock_env_vars, mock_runtime_service):
         """Test service initialization flow."""
         qiskit_runtime_sp = QiskitRuntimeServiceProvider()
         qiskit_runtime_service_mock = mocker.patch(
@@ -70,9 +79,7 @@ class TestErrorHandlingIntegration:
 
     @pytest.mark.integration
     @pytest.mark.asyncio
-    async def test_network_connectivity_issues(
-        self, mocker, mock_env_vars, mock_runtime_service
-    ):
+    async def test_network_connectivity_issues(self, mocker, mock_env_vars, mock_runtime_service):
         """Test handling of network connectivity issues."""
         from qiskit_ibm_transpiler_mcp_server.utils import get_backend_service
 
@@ -96,13 +103,13 @@ class TestEndToEndScenarios:
     async def test_complete_synthesis_pass(self):
         """Test complete backend exploration scenario."""
         from qiskit_ibm_transpiler_mcp_server.qta import (
-            ai_routing,
             ai_clifford_synthesis,
+            ai_routing,
         )
         from qiskit_ibm_transpiler_mcp_server.utils import setup_ibm_quantum_account
 
         # 1. Load valid QASM 3.0 quantum circuit
-        with open("tests/qasm/correct_qasm_1", "r") as f:
+        with open("tests/qasm/correct_qasm_1") as f:
             qasm_string = f.read()
 
         # 2. Setup account
@@ -110,9 +117,7 @@ class TestEndToEndScenarios:
         assert setup_result["status"] == "success"
 
         # 3. AI Routing
-        ai_routing_result = await ai_routing(
-            circuit_qasm=qasm_string, backend_name="ibm_fez"
-        )
+        ai_routing_result = await ai_routing(circuit_qasm=qasm_string, backend_name="ibm_fez")
         assert ai_routing_result["status"] == "success"
         assert isinstance(ai_routing_result["optimized_circuit_qasm"], str)
 

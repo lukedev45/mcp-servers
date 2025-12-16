@@ -27,16 +27,19 @@ classifiers = [
 dependencies = [
     "qiskit-code-assistant-mcp-server>=0.1.1",
     "qiskit-ibm-runtime-mcp-server>=0.1.2",
+    "qiskit-ibm-transpiler-mcp-server>=0.1.0",
 ]
 
 [project.optional-dependencies]
 # Install individual servers
 code-assistant = ["qiskit-code-assistant-mcp-server>=0.1.1"]
 runtime = ["qiskit-ibm-runtime-mcp-server>=0.1.2"]
+transpiler = ["qiskit-ibm-transpiler-mcp-server>=0.1.0"]
 # Install all servers (same as default dependencies)
 all = [
     "qiskit-code-assistant-mcp-server>=0.1.1",
     "qiskit-ibm-runtime-mcp-server>=0.1.2",
+    "qiskit-ibm-transpiler-mcp-server>=0.1.0",
 ]
 
 [project.urls]
@@ -57,12 +60,14 @@ packages = ["src/qiskit_mcp_servers"]
 members = [
     "qiskit-code-assistant-mcp-server",
     "qiskit-ibm-runtime-mcp-server",
+    "qiskit-ibm-transpiler-mcp-server",
 ]
 
 # Source configuration for workspace dependencies
 [tool.uv.sources]
 qiskit-code-assistant-mcp-server = { workspace = true }
 qiskit-ibm-runtime-mcp-server = { workspace = true }
+qiskit-ibm-transpiler-mcp-server = { workspace = true }
 
 # Shared tool configurations
 [tool.ruff]
@@ -74,7 +79,7 @@ extend = "ruff.toml"
 # Note: mypy doesn't support extend in pyproject.toml, see mypy.ini
 
 [tool.pytest.ini_options]
-testpaths = ["qiskit-code-assistant-mcp-server/tests", "qiskit-ibm-runtime-mcp-server/tests"]
+testpaths = ["qiskit-code-assistant-mcp-server/tests", "qiskit-ibm-runtime-mcp-server/tests", "qiskit-ibm-transpiler-mcp-server/tests"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
@@ -96,7 +101,8 @@ markers = [
 [tool.coverage.run]
 source = [
     "qiskit-code-assistant-mcp-server/src",
-    "qiskit-ibm-runtime-mcp-server/src"
+    "qiskit-ibm-runtime-mcp-server/src",
+    "qiskit-ibm-transpiler-mcp-server/src"
 ]
 omit = [
     "*/tests/*",

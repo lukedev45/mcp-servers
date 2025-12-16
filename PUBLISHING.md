@@ -8,7 +8,8 @@ This repository contains multiple PyPI packages:
 
 1. **qiskit-code-assistant-mcp-server** - MCP server for Qiskit Code Assistant
 2. **qiskit-ibm-runtime-mcp-server** - MCP server for IBM Quantum Runtime
-3. **qiskit-mcp-servers** - Meta-package that installs all MCP servers
+3. **qiskit-ibm-transpiler-mcp-server** - MCP server for transpilation using the AI-powered transpiler passes.
+4. **qiskit-mcp-servers** - Meta-package that installs all MCP servers
 
 ### Meta-Package
 
@@ -21,6 +22,7 @@ pip install qiskit-mcp-servers
 # Or install individual servers via extras
 pip install qiskit-mcp-servers[code-assistant]  # Only Code Assistant
 pip install qiskit-mcp-servers[runtime]          # Only Runtime
+pip install qiskit-mcp-servers[transpiler]       # Only Transpiler
 ```
 
 ## Automated Publishing (Recommended)
@@ -54,10 +56,11 @@ Alternatively, you can create releases manually through the GitHub web interface
 1. Go to PyPI and create the project (if it doesn't exist):
    - For `qiskit-code-assistant-mcp-server`: https://pypi.org/manage/project/qiskit-code-assistant-mcp-server/settings/publishing/
    - For `qiskit-ibm-runtime-mcp-server`: https://pypi.org/manage/project/qiskit-ibm-runtime-mcp-server/settings/publishing/
+   - For `qiskit-ibm-transpiler-mcp-server`: https://pypi.org/manage/project/qiskit-ibm-transpiler-mcp-server/settings/publishing/
    - For `qiskit-mcp-servers`: https://pypi.org/manage/project/qiskit-mcp-servers/settings/publishing/
 
 2. Add a "trusted publisher" with these settings:
-   - **PyPI Project Name**: `qiskit-code-assistant-mcp-server` (or `qiskit-ibm-runtime-mcp-server` or `qiskit-mcp-servers`)
+   - **PyPI Project Name**: `qiskit-code-assistant-mcp-server` (or `qiskit-ibm-runtime-mcp-server`, `qiskit-ibm-transpiler-mcp-server`, or `qiskit-mcp-servers`)
    - **Owner**: `AI4quantum`
    - **Repository**: `mcp-servers`
    - **Workflow name**: `publish-pypi.yml`
@@ -73,6 +76,7 @@ The workflow automatically publishes when you create a GitHub release. The tag n
 |-------------|-------------------|
 | `code-assistant-v*` | qiskit-code-assistant-mcp-server |
 | `runtime-v*` | qiskit-ibm-runtime-mcp-server |
+| `transpiler-v*` | qiskit-ibm-transpiler-mcp-server |
 | `meta-v*` | qiskit-mcp-servers (meta-package) |
 
 #### Complete Release Workflow
@@ -84,6 +88,7 @@ Follow these steps to release a package:
 Edit the version in the appropriate `pyproject.toml`:
 - **Code Assistant**: `qiskit-code-assistant-mcp-server/pyproject.toml`
 - **Runtime**: `qiskit-ibm-runtime-mcp-server/pyproject.toml`
+- **Transpiler**: `qiskit-ibm-transpiler-mcp-server/pyproject.toml`
 - **Meta-package**: `pyproject.toml` (root)
 
 ##### Step 2: Commit and Push Changes
@@ -136,6 +141,14 @@ git tag -a runtime-v0.1.1 -m "Release v0.1.1" && git push origin runtime-v0.1.1
 gh release create runtime-v0.1.1 --title "qiskit-ibm-runtime-mcp-server v0.1.1" --generate-notes
 ```
 
+**Transpiler Server:**
+```bash
+# After updating version in qiskit-ibm-transpiler-mcp-server/pyproject.toml
+git add -A && git commit -m "Bump transpiler to v0.1.0" && git push origin main
+git tag -a transpiler-v0.1.0 -m "Release v0.1.0" && git push origin transpiler-v0.1.0
+gh release create transpiler-v0.1.0 --title "qiskit-ibm-transpiler-mcp-server v0.1.0" --generate-notes
+```
+
 **Meta-Package:**
 ```bash
 # After updating version in pyproject.toml (root)
@@ -158,6 +171,9 @@ gh workflow run "Publish to PyPI" -f package=code-assistant
 # Publish only runtime
 gh workflow run "Publish to PyPI" -f package=runtime
 
+# Publish only transpiler
+gh workflow run "Publish to PyPI" -f package=transpiler
+
 # Publish only meta-package
 gh workflow run "Publish to PyPI" -f package=meta-package
 ```
@@ -166,7 +182,7 @@ Alternatively, you can trigger via the GitHub web interface:
 
 1. Go to **Actions** → **Publish to PyPI**
 2. Click **Run workflow**
-3. Select which package to publish: `all`, `meta-package`, `code-assistant`, or `runtime`
+3. Select which package to publish: `all`, `meta-package`, `code-assistant`, `runtime`, or `transpiler`
 
 ## Manual Publishing
 
@@ -191,6 +207,7 @@ pip install uv
 Edit the version in `pyproject.toml`:
 - **Code Assistant**: `qiskit-code-assistant-mcp-server/pyproject.toml`
 - **Runtime**: `qiskit-ibm-runtime-mcp-server/pyproject.toml`
+- **Transpiler**: `qiskit-ibm-transpiler-mcp-server/pyproject.toml`
 - **Meta-package**: `pyproject.toml` (root)
 
 #### 2. Build the Package
@@ -209,6 +226,17 @@ python -m build
 **For Runtime:**
 ```bash
 cd qiskit-ibm-runtime-mcp-server
+
+# Build with uv (recommended)
+uv build
+
+# Or with build
+python -m build
+```
+
+**For Transpiler:**
+```bash
+cd qiskit-ibm-transpiler-mcp-server
 
 # Build with uv (recommended)
 uv build
@@ -250,6 +278,8 @@ twine upload --repository testpypi dist/*
 pip install --index-url https://test.pypi.org/simple/ qiskit-code-assistant-mcp-server
 # or
 pip install --index-url https://test.pypi.org/simple/ qiskit-ibm-runtime-mcp-server
+# or
+pip install --index-url https://test.pypi.org/simple/ qiskit-ibm-transpiler-mcp-server
 ```
 
 **Upload to production PyPI:**
@@ -272,6 +302,9 @@ pip install qiskit-code-assistant-mcp-server
 # For Runtime
 pip install qiskit-ibm-runtime-mcp-server
 
+# For Transpiler
+pip install qiskit-ibm-transpiler-mcp-server
+
 # For Meta-Package (installs all servers)
 pip install qiskit-mcp-servers
 ```
@@ -292,6 +325,7 @@ The current version for each package is defined in their respective `pyproject.t
 
 - **qiskit-code-assistant-mcp-server**: See [qiskit-code-assistant-mcp-server/pyproject.toml](qiskit-code-assistant-mcp-server/pyproject.toml) (search for `version =`)
 - **qiskit-ibm-runtime-mcp-server**: See [qiskit-ibm-runtime-mcp-server/pyproject.toml](qiskit-ibm-runtime-mcp-server/pyproject.toml) (search for `version =`)
+- **qiskit-ibm-transpiler-mcp-server**: See [qiskit-ibm-transpiler-mcp-server/pyproject.toml](qiskit-ibm-transpiler-mcp-server/pyproject.toml) (search for `version =`)
 - **qiskit-mcp-servers**: See [pyproject.toml](pyproject.toml) (search for `version =`)
 
 ## Pre-Publication Checklist

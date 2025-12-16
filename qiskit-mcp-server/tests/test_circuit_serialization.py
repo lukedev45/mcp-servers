@@ -13,7 +13,6 @@
 
 import pytest
 from qiskit import QuantumCircuit
-
 from qiskit_mcp_server.circuit_serialization import (
     dump_circuit,
     dump_qasm_circuit,

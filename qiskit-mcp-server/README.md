@@ -77,7 +77,7 @@ Add to your Claude Desktop configuration (`claude_desktop_config.json`):
 ```python
 from qiskit_mcp_server.transpiler import transpile_circuit
 
-# Simple Bell state circuit
+# Simple Bell state circuit (QASM2 - automatically detected)
 qasm = """OPENQASM 2.0;
 include "qelib1.inc";
 qreg q[2];
@@ -87,7 +87,7 @@ cx q[0], q[1];
 measure q -> c;
 """
 
-# Transpile with default settings (optimization level 2)
+# Transpile with default settings (optimization level 2, QASM3 format)
 result = await transpile_circuit(qasm)
 
 # Transpile for IBM Heron processor
@@ -97,6 +97,28 @@ result = await transpile_circuit(
     basis_gates="ibm_heron",
     coupling_map="linear"
 )
+```
+
+### Using QPY Format
+
+```python
+from qiskit import QuantumCircuit
+from qiskit_mcp_server import dump_qpy_circuit
+from qiskit_mcp_server.transpiler import transpile_circuit
+
+# Create a circuit programmatically
+qc = QuantumCircuit(2, 2)
+qc.h(0)
+qc.cx(0, 1)
+qc.measure([0, 1], [0, 1])
+
+# Convert to QPY (preserves exact parameters and metadata)
+qpy_circuit = dump_qpy_circuit(qc)
+
+# Transpile using QPY format
+result = await transpile_circuit(qpy_circuit, circuit_format="qpy")
+# Result includes transpiled circuit in QPY format
+transpiled_qpy = result["transpiled_circuit"]["circuit"]
 ```
 
 ### Sync Usage (DSPy, Jupyter, Scripts)
@@ -146,12 +168,12 @@ for level in range(4):
 
 ### Core Functions
 
-#### `transpile_circuit(circuit_qasm, optimization_level=2, basis_gates=None, coupling_map=None, initial_layout=None, seed_transpiler=None)`
+#### `transpile_circuit(circuit, optimization_level=2, basis_gates=None, coupling_map=None, initial_layout=None, seed_transpiler=None, circuit_format="qasm3")`
 
 Transpile a quantum circuit using Qiskit's preset pass managers.
 
 **Parameters:**
-- `circuit_qasm`: OpenQASM 2.0 or 3.0 string (max 100 qubits, 10,000 gates)
+- `circuit`: Quantum circuit as QASM3 string, base64-encoded QPY, or QASM2 string (max 100 qubits, 10,000 gates)
 - `optimization_level`: 0-3 (default: 2)
   - 0: No optimization, only basis gate decomposition (fastest)
   - 1: Light optimization with default layout
@@ -161,22 +183,36 @@ Transpile a quantum circuit using Qiskit's preset pass managers.
 - `coupling_map`: List of edges or topology name ("linear", "ring", "grid", "full")
 - `initial_layout`: List of physical qubit indices (length must match circuit qubits)
 - `seed_transpiler`: Random seed for reproducibility
+- `circuit_format`: Format of the input circuit ("qasm3" or "qpy"). Defaults to "qasm3". When "qasm3" is specified, QASM2 is also accepted as a fallback.
 
 **Returns:** Dictionary with original/transpiled circuit info and optimization metrics
 
 **Note:** Level 3 optimization can be very slow for circuits with >20 qubits or >500 gates. Use level 2 for faster results with good quality.
 
-#### `analyze_circuit(circuit_qasm)`
+#### `analyze_circuit(circuit, circuit_format="qasm3")`
 
 Analyze circuit structure and complexity.
 
 **Returns:** Dictionary with gate counts, depth, and categorization (single/two/multi-qubit gates)
 
-#### `compare_optimization_levels(circuit_qasm)`
+#### `compare_optimization_levels(circuit, circuit_format="qasm3")`
 
 Compare transpilation results across all optimization levels.
 
 **Returns:** Dictionary comparing depth, size, and gates for levels 0-3
+
+### Circuit Format Support
+
+The server supports two circuit formats:
+
+| Format | Description |
+|--------|-------------|
+| `qasm3` | OpenQASM 3.0 string (with QASM2 fallback). Human-readable text format. |
+| `qpy` | Base64-encoded QPY binary format. Preserves exact parameters and metadata. |
+
+**When to use each format:**
+- **QASM3** (default): Best for human-readable circuits, debugging, and interoperability
+- **QPY**: Best for preserving exact numerical parameters and circuit metadata when passing circuits between MCP servers
 
 ### Available Basis Gate Sets
 

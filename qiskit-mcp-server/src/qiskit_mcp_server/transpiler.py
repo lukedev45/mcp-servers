@@ -22,10 +22,15 @@ import math
 import os
 from typing import Any
 
-from qiskit import QuantumCircuit, qasm2, qasm3
+from qiskit import QuantumCircuit, qasm2
 from qiskit.transpiler import CouplingMap
 from qiskit.transpiler.preset_passmanagers import generate_preset_pass_manager
 
+from qiskit_mcp_server.circuit_serialization import (
+    CircuitFormat,
+    dump_circuit,
+    load_circuit,
+)
 from qiskit_mcp_server.utils import with_sync
 
 
@@ -115,11 +120,14 @@ def _parse_coupling_map(
     return CouplingMap(coupling_map)
 
 
-def _circuit_to_dict(circuit: QuantumCircuit) -> dict[str, Any]:
+def _circuit_to_dict(
+    circuit: QuantumCircuit, circuit_format: CircuitFormat = "qasm3"
+) -> dict[str, Any]:
     """Convert a QuantumCircuit to a dictionary representation.
 
     Args:
         circuit: The quantum circuit to convert
+        circuit_format: Output format for circuit serialization ("qasm3" or "qpy")
 
     Returns:
         Dictionary with circuit information
@@ -133,20 +141,15 @@ def _circuit_to_dict(circuit: QuantumCircuit) -> dict[str, Any]:
     # Calculate depth
     depth = circuit.depth()
 
-    # Get QASM representation with explicit error tracking
-    # Try QASM 3.0 first (preserves more information), fall back to QASM 2.0
-    qasm_str: str | None = None
-    qasm_error: str | None = None
+    # Serialize circuit using the shared library
+    circuit_str: str | None = None
+    export_error: str | None = None
 
     try:
-        qasm_str = qasm3.dumps(circuit)
+        circuit_str = dump_circuit(circuit, circuit_format=circuit_format)
     except Exception as e:
-        logger.debug(f"QASM 3.0 export failed: {e}, trying QASM 2.0")
-        try:
-            qasm_str = qasm2.dumps(circuit)
-        except Exception as e2:
-            qasm_error = f"Circuit cannot be exported to QASM (may contain unsupported gates): {e2}"
-            logger.debug(qasm_error)
+        logger.debug(f"{circuit_format.upper()} export failed: {e}")
+        export_error = f"Circuit cannot be exported to {circuit_format.upper()}: {e}"
 
     result: dict[str, Any] = {
         "num_qubits": circuit.num_qubits,
@@ -156,20 +159,25 @@ def _circuit_to_dict(circuit: QuantumCircuit) -> dict[str, Any]:
         "width": circuit.width(),
         "operation_counts": op_counts,
         "total_operations": sum(op_counts.values()),
-        "qasm": qasm_str,
+        "circuit": circuit_str,
+        "circuit_format": circuit_format,
     }
 
-    if qasm_error and qasm_str is None:
-        result["qasm_export_error"] = qasm_error
+    if export_error and circuit_str is None:
+        result["export_error"] = export_error
 
     return result
 
 
-def _parse_circuit(circuit_input: str) -> QuantumCircuit:
-    """Parse a circuit from QASM string.
+def _parse_circuit(circuit_input: str, circuit_format: CircuitFormat = "qasm3") -> QuantumCircuit:
+    """Parse a circuit from QASM3, QPY, or QASM2 string.
+
+    Attempts to load the circuit using the specified format first, then falls back
+    to QASM2 if QASM3 parsing fails (for backwards compatibility).
 
     Args:
-        circuit_input: OpenQASM 2.0 or 3.0 string
+        circuit_input: Circuit as QASM3 string, base64-encoded QPY, or QASM2 string
+        circuit_format: Expected format ("qasm3" or "qpy"). Defaults to "qasm3".
 
     Returns:
         QuantumCircuit object
@@ -177,19 +185,24 @@ def _parse_circuit(circuit_input: str) -> QuantumCircuit:
     Raises:
         ValueError: If the circuit cannot be parsed
     """
-    # Try QASM 2.0 first
-    try:
-        return qasm2.loads(circuit_input)
-    except Exception as e:
-        logger.debug(f"QASM 2.0 parsing failed: {e}")
+    # Try to load using the shared circuit serialization library (QPY or QASM3)
+    result = load_circuit(circuit_input, circuit_format=circuit_format)
+    if result["status"] == "success":
+        return result["circuit"]
 
-    # Try QASM 3.0
-    try:
-        return qasm3.loads(circuit_input)
-    except Exception as e:
-        logger.debug(f"QASM 3.0 parsing failed: {e}")
+    # If QASM3 failed, try QASM2 as fallback (for backwards compatibility)
+    if circuit_format == "qasm3":
+        logger.debug(f"QASM3 parsing failed: {result.get('message')}, trying QASM2")
+        try:
+            return qasm2.loads(circuit_input)
+        except Exception as e:
+            logger.debug(f"QASM2 parsing also failed: {e}")
 
-    raise ValueError("Could not parse circuit. Please provide a valid OpenQASM 2.0 or 3.0 string.")
+    # If we get here, all parsing attempts failed
+    raise ValueError(
+        f"Could not parse circuit as {circuit_format.upper()}. "
+        f"Error: {result.get('message', 'Unknown error')}"
+    )
 
 
 def _validate_circuit_size(circuit: QuantumCircuit) -> str | None:
@@ -271,20 +284,22 @@ def _resolve_basis_gates(
 
 @with_sync
 async def transpile_circuit(
-    circuit_qasm: str,
+    circuit: str,
     optimization_level: int = 2,
     basis_gates: list[str] | str | None = None,
     coupling_map: list[list[int]] | str | None = None,
     initial_layout: list[int] | None = None,
     seed_transpiler: int | None = None,
+    circuit_format: CircuitFormat = "qasm3",
 ) -> dict[str, Any]:
     """Transpile a quantum circuit using Qiskit's preset pass managers.
 
-    This function takes an OpenQASM circuit and transpiles it to match
+    This function takes a quantum circuit and transpiles it to match
     target hardware constraints while optimizing for depth and gate count.
 
     Args:
-        circuit_qasm: OpenQASM 2.0 or 3.0 string representation of the circuit
+        circuit: Quantum circuit as QASM3 string, base64-encoded QPY, or QASM2 string.
+            For QASM2, set circuit_format="qasm3" (it will auto-detect and parse QASM2).
         optimization_level: Optimization level (0-3):
             - 0: No optimization, just maps to basis gates
             - 1: Light optimization (default mapping, simple optimizations)
@@ -300,28 +315,31 @@ async def transpile_circuit(
             - None for all-to-all connectivity
         initial_layout: Optional initial qubit layout as list of physical qubit indices
         seed_transpiler: Random seed for reproducibility
+        circuit_format: Format of the input circuit ("qasm3" or "qpy"). Defaults to "qasm3".
+            When "qasm3" is specified, QASM2 is also accepted as a fallback.
 
     Returns:
         Dictionary containing:
         - status: "success" or "error"
-        - original_circuit: Information about the input circuit
+        - original_circuit: Information about the input circuit (includes circuit in same format)
         - transpiled_circuit: Information about the transpiled circuit
         - optimization_level: The optimization level used
         - basis_gates: The basis gates used
+        - circuit_format: The format used for circuit serialization
         - improvements: Metrics showing optimization improvements
     """
     try:
         # Parse input circuit
         try:
-            circuit = _parse_circuit(circuit_qasm)
+            parsed_circuit = _parse_circuit(circuit, circuit_format=circuit_format)
         except ValueError as e:
             return {"status": "error", "message": str(e)}
 
         # Validate all inputs - collect first error found
         validation_error = (
-            _validate_circuit_size(circuit)
+            _validate_circuit_size(parsed_circuit)
             or _validate_optimization_level(optimization_level)
-            or _validate_initial_layout(initial_layout, circuit.num_qubits)
+            or _validate_initial_layout(initial_layout, parsed_circuit.num_qubits)
         )
         if validation_error:
             return {"status": "error", "message": validation_error}
@@ -333,18 +351,20 @@ async def transpile_circuit(
 
         # Parse coupling map
         try:
-            resolved_coupling_map = _parse_coupling_map(coupling_map, circuit.num_qubits)
+            resolved_coupling_map = _parse_coupling_map(coupling_map, parsed_circuit.num_qubits)
         except ValueError as e:
             return {"status": "error", "message": str(e)}
 
         # Get original circuit info
-        original_info = _circuit_to_dict(circuit)
+        original_info = _circuit_to_dict(parsed_circuit, circuit_format=circuit_format)
 
         # Log warning for level 3 with large circuits
-        if optimization_level == 3 and (circuit.num_qubits > 20 or circuit.size() > 500):
+        if optimization_level == 3 and (
+            parsed_circuit.num_qubits > 20 or parsed_circuit.size() > 500
+        ):
             logger.warning(
-                f"Using optimization level 3 on circuit with {circuit.num_qubits} qubits "
-                f"and {circuit.size()} gates. This may take a long time."
+                f"Using optimization level 3 on circuit with {parsed_circuit.num_qubits} qubits "
+                f"and {parsed_circuit.size()} gates. This may take a long time."
             )
 
         # Generate preset pass manager
@@ -357,10 +377,10 @@ async def transpile_circuit(
         )
 
         # Run transpilation
-        transpiled = pm.run(circuit)
+        transpiled = pm.run(parsed_circuit)
 
         # Get transpiled circuit info
-        transpiled_info = _circuit_to_dict(transpiled)
+        transpiled_info = _circuit_to_dict(transpiled, circuit_format=circuit_format)
 
         # Calculate improvements
         depth_reduction = original_info["depth"] - transpiled_info["depth"]
@@ -379,6 +399,7 @@ async def transpile_circuit(
             "optimization_level": optimization_level,
             "basis_gates": resolved_basis_gates,
             "coupling_map_type": coupling_map if isinstance(coupling_map, str) else "custom",
+            "circuit_format": circuit_format,
             "improvements": {
                 "depth_reduction": depth_reduction,
                 "depth_reduction_percent": round(depth_reduction_pct, 2),
@@ -402,14 +423,15 @@ async def transpile_circuit(
 
 
 @with_sync
-async def analyze_circuit(circuit_qasm: str) -> dict[str, Any]:
+async def analyze_circuit(circuit: str, circuit_format: CircuitFormat = "qasm3") -> dict[str, Any]:
     """Analyze a quantum circuit without transpiling it.
 
     Provides detailed information about the circuit structure, gate counts,
     and other metrics useful for understanding circuit complexity.
 
     Args:
-        circuit_qasm: OpenQASM 2.0 or 3.0 string representation of the circuit
+        circuit: Quantum circuit as QASM3 string, base64-encoded QPY, or QASM2 string.
+        circuit_format: Format of the input circuit ("qasm3" or "qpy"). Defaults to "qasm3".
 
     Returns:
         Dictionary containing circuit analysis including:
@@ -423,18 +445,18 @@ async def analyze_circuit(circuit_qasm: str) -> dict[str, Any]:
     """
     try:
         try:
-            circuit = _parse_circuit(circuit_qasm)
+            parsed_circuit = _parse_circuit(circuit, circuit_format=circuit_format)
         except ValueError as e:
             return {"status": "error", "message": str(e)}
 
-        info = _circuit_to_dict(circuit)
+        info = _circuit_to_dict(parsed_circuit, circuit_format=circuit_format)
 
         # Categorize gates
         two_qubit_gates = 0
         single_qubit_gates = 0
         multi_qubit_gates = 0
 
-        for instruction in circuit.data:
+        for instruction in parsed_circuit.data:
             num_qubits = len(instruction.qubits)
             if num_qubits == 1:
                 single_qubit_gates += 1
@@ -502,41 +524,45 @@ def _find_best_level(optimization_results: dict[str, Any]) -> int:
 
 
 @with_sync
-async def compare_optimization_levels(circuit_qasm: str) -> dict[str, Any]:
+async def compare_optimization_levels(
+    circuit: str, circuit_format: CircuitFormat = "qasm3"
+) -> dict[str, Any]:
     """Compare transpilation results across all optimization levels.
 
     Useful for understanding the trade-off between compilation time
     and circuit quality for a specific circuit.
 
     Args:
-        circuit_qasm: OpenQASM 2.0 or 3.0 string representation of the circuit
+        circuit: Quantum circuit as QASM3 string, base64-encoded QPY, or QASM2 string.
+        circuit_format: Format of the input circuit ("qasm3" or "qpy"). Defaults to "qasm3".
 
     Returns:
         Dictionary comparing results from optimization levels 0-3
     """
     try:
         try:
-            circuit = _parse_circuit(circuit_qasm)
+            parsed_circuit = _parse_circuit(circuit, circuit_format=circuit_format)
         except ValueError as e:
             return {"status": "error", "message": str(e)}
 
         # Validate circuit size (more lenient for comparison)
-        if circuit.num_qubits > MAX_QUBITS:
+        if parsed_circuit.num_qubits > MAX_QUBITS:
             return {
                 "status": "error",
-                "message": f"Circuit has {circuit.num_qubits} qubits, exceeding maximum of {MAX_QUBITS}.",
+                "message": f"Circuit has {parsed_circuit.num_qubits} qubits, exceeding maximum of {MAX_QUBITS}.",
             }
 
-        original_info = _circuit_to_dict(circuit)
+        original_info = _circuit_to_dict(parsed_circuit, circuit_format=circuit_format)
         results: dict[str, Any] = {
             "status": "success",
             "original_circuit": original_info,
+            "circuit_format": circuit_format,
             "optimization_results": {},
         }
 
         for level in range(4):
             results["optimization_results"][f"level_{level}"] = _transpile_at_level(
-                circuit, level, original_info
+                parsed_circuit, level, original_info
             )
 
         # Add recommendation

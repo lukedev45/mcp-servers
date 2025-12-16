@@ -36,10 +36,6 @@ def main() -> None:
 
 
 __all__ = [
-    # Server
-    "main",
-    "server",
-    # Circuit serialization
     "CircuitFormat",
     "dump_circuit",
     "dump_qasm_circuit",
@@ -47,6 +43,7 @@ __all__ = [
     "load_circuit",
     "load_qasm_circuit",
     "load_qpy_circuit",
-    # Async utilities
+    "main",
+    "server",
     "with_sync",
 ]

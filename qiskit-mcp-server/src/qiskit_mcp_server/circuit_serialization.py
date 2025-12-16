@@ -158,9 +158,7 @@ def dump_qpy_circuit(circuit: QuantumCircuit) -> str:
     return base64.b64encode(buffer.getvalue()).decode("utf-8")
 
 
-def load_circuit(
-    circuit_data: str, circuit_format: CircuitFormat = "qasm3"
-) -> dict[str, Any]:
+def load_circuit(circuit_data: str, circuit_format: CircuitFormat = "qasm3") -> dict[str, Any]:
     """Load a quantum circuit from either QASM3 or QPY format.
 
     This is a unified interface for loading circuits in different formats.

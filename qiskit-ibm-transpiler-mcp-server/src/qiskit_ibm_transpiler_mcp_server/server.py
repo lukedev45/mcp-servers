@@ -40,14 +40,14 @@ logger.info("Qiskit IBM Transpiler MCP Server initialized")
 # Tools
 @mcp.tool()
 async def setup_ibm_quantum_account_tool(
-    token: str | None = None, channel: str = "ibm_quantum_platform"
+    token: str = "", channel: str = "ibm_quantum_platform"
 ) -> dict[str, Any]:
     """Set up IBM Quantum account with credentials.
 
     If token is not provided, will attempt to use QISKIT_IBM_TOKEN environment variable
     or saved credentials from ~/.qiskit/qiskit-ibm.json
     """
-    return await setup_ibm_quantum_account(token, channel)
+    return await setup_ibm_quantum_account(token if token else None, channel)
 
 
 @mcp.tool()

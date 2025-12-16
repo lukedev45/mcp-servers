@@ -120,8 +120,8 @@ agent = dspy.ReAct(
 )
 
 # load your Quantum Circuit to be synthesized as QASM 3.0 string
-qasm_strig = "your_qasm_string_here"
-result = agent(question=f"Can you synthesize the given QASM Clifford Quantum circuit using ibm_fez backend? This is the QASM string {qasm_strig}")
+qasm_string = "your_qasm_string_here"
+result = agent(question=f"Can you synthesize the given QASM Clifford Quantum circuit using ibm_fez backend? This is the QASM string {qasm_string}")
 print(result)
 ```
 

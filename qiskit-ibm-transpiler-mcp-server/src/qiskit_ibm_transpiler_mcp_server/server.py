@@ -42,10 +42,14 @@ logger.info("Qiskit IBM Transpiler MCP Server initialized")
 async def setup_ibm_quantum_account_tool(
     token: str = "", channel: str = "ibm_quantum_platform"
 ) -> dict[str, Any]:
-    """Set up IBM Quantum account with credentials.
+    """Set up IBM Quantum account with credentials. Call this before using other tools.
 
-    If token is not provided, will attempt to use QISKIT_IBM_TOKEN environment variable
-    or saved credentials from ~/.qiskit/qiskit-ibm.json
+    Args:
+        token: IBM Quantum API token. If empty, uses QISKIT_IBM_TOKEN env var or saved credentials from ~/.qiskit/qiskit-ibm.json
+        channel: Service channel, must be 'ibm_quantum_platform'
+
+    Returns:
+        Dict with 'status' ('success' or 'error'), 'message', and 'available_backends' count on success.
     """
     return await setup_ibm_quantum_account(token if token else None, channel)
 
@@ -61,12 +65,19 @@ async def ai_routing_tool(
     | None = None,
     local_mode: bool = True,
 ) -> dict[str, Any]:
-    """
-    This tool acts both as a layout stage and a routing stage. It inserts SWAP operations on a circuit to make two-qubits operations compatible with a given coupling map that restricts the pair of qubits on which operations can be applied.
-    It should be used as an initial step before any other AI synthesis routine.
-    It returns the routed quantum circuit as QASM 3.0 string.
-    """
+    """Route a quantum circuit by inserting SWAP operations for backend compatibility. Use this FIRST before other synthesis tools.
 
+    Args:
+        circuit_qasm: Input quantum circuit as QASM 3.0 string
+        backend_name: Target IBM Quantum backend (e.g., 'ibm_torino', 'ibm_fez')
+        optimization_level: 1 (fastest, least optimization) to 3 (slowest, most optimization)
+        layout_mode: 'keep' (respect existing layout), 'improve' (refine initial guess), 'optimize' (best for general circuits)
+        optimization_preferences: What to minimize - 'n_cnots', 'n_gates', 'cnot_layers', 'layers', or 'noise'. Can be a list.
+        local_mode: True runs locally (recommended), False uses remote Qiskit Transpiler Service
+
+    Returns:
+        Dict with 'status' ('success' or 'error') and 'optimized_circuit_qasm' (QASM 3.0 string) on success.
+    """
     return await ai_routing(
         circuit_qasm=circuit_qasm,
         backend_name=backend_name,
@@ -84,8 +95,16 @@ async def ai_linear_function_synthesis_tool(
     replace_only_if_better: bool = True,
     local_mode: bool = True,
 ) -> dict[str, Any]:
-    """
-    Synthesis for Linear Function circuits (blocks of CX and SWAP gates). Currently, up to nine qubit blocks.
+    """AI-powered synthesis for Linear Function circuits (CX and SWAP gate blocks, up to 9 qubits).
+
+    Args:
+        circuit_qasm: Input quantum circuit as QASM 3.0 string
+        backend_name: Target IBM Quantum backend (e.g., 'ibm_torino', 'ibm_fez')
+        replace_only_if_better: If True, only replaces sub-circuits when synthesis improves CNOT count
+        local_mode: True runs locally (recommended), False uses remote Qiskit Transpiler Service
+
+    Returns:
+        Dict with 'status' ('success' or 'error') and 'optimized_circuit_qasm' (QASM 3.0 string) on success.
     """
     return await ai_linear_function_synthesis(
         circuit_qasm=circuit_qasm,
@@ -102,10 +121,17 @@ async def ai_clifford_synthesis_tool(
     replace_only_if_better: bool = True,
     local_mode: bool = True,
 ) -> dict[str, Any]:
-    """
-    Synthesis for Clifford circuits (blocks of H, S, and CX gates). Currently, up to nine qubit blocks.
-    """
+    """AI-powered synthesis for Clifford circuits (H, S, and CX gate blocks, up to 9 qubits).
 
+    Args:
+        circuit_qasm: Input quantum circuit as QASM 3.0 string
+        backend_name: Target IBM Quantum backend (e.g., 'ibm_torino', 'ibm_fez')
+        replace_only_if_better: If True, only replaces sub-circuits when synthesis improves CNOT count
+        local_mode: True runs locally (recommended), False uses remote Qiskit Transpiler Service
+
+    Returns:
+        Dict with 'status' ('success' or 'error') and 'optimized_circuit_qasm' (QASM 3.0 string) on success.
+    """
     return await ai_clifford_synthesis(
         circuit_qasm=circuit_qasm,
         backend_name=backend_name,
@@ -121,8 +147,16 @@ async def ai_permutation_synthesis_tool(
     replace_only_if_better: bool = True,
     local_mode: bool = True,
 ) -> dict[str, Any]:
-    """
-    Synthesis for Permutation circuits (blocks of SWAP gates). Currently available for 65, 33, and 27 qubit blocks.
+    """AI-powered synthesis for Permutation circuits (SWAP gate blocks, supports 27, 33, and 65 qubit blocks).
+
+    Args:
+        circuit_qasm: Input quantum circuit as QASM 3.0 string
+        backend_name: Target IBM Quantum backend (e.g., 'ibm_torino', 'ibm_fez')
+        replace_only_if_better: If True, only replaces sub-circuits when synthesis improves CNOT count
+        local_mode: True runs locally (recommended), False uses remote Qiskit Transpiler Service
+
+    Returns:
+        Dict with 'status' ('success' or 'error') and 'optimized_circuit_qasm' (QASM 3.0 string) on success.
     """
     return await ai_permutation_synthesis(
         circuit_qasm=circuit_qasm,
@@ -139,8 +173,16 @@ async def ai_pauli_network_synthesis_tool(
     replace_only_if_better: bool = True,
     local_mode: bool = True,
 ) -> dict[str, Any]:
-    """
-    Synthesis for Pauli Network circuits (blocks of H, S, SX, CX, RX, RY and RZ gates). Currently, up to six qubit blocks.
+    """AI-powered synthesis for Pauli Network circuits (H, S, SX, CX, RX, RY, RZ gate blocks, up to 6 qubits).
+
+    Args:
+        circuit_qasm: Input quantum circuit as QASM 3.0 string
+        backend_name: Target IBM Quantum backend (e.g., 'ibm_torino', 'ibm_fez')
+        replace_only_if_better: If True, only replaces sub-circuits when synthesis improves CNOT count
+        local_mode: True runs locally (recommended), False uses remote Qiskit Transpiler Service
+
+    Returns:
+        Dict with 'status' ('success' or 'error') and 'optimized_circuit_qasm' (QASM 3.0 string) on success.
     """
     return await ai_pauli_network_synthesis(
         circuit_qasm=circuit_qasm,

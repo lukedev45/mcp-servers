@@ -52,12 +52,9 @@ class TestRunSynthesis:
             pass_kwargs=ai_synthesis_pass_kwargs,
         )
         assert result["status"] == "success"
-        assert result["optimized_circuit"] == "optimized_circuit"
-        assert result["circuit_format"] == "qasm3"
+        assert result["optimized_circuit_qpy"] == "optimized_circuit_qpy"
         mock_get_backend_service_success.assert_awaited_once_with(backend_name=mock_backend)
         mock_load_qasm_circuit_success.assert_called_once_with("dummy_circuit_qasm", circuit_format="qasm3")
-        mock_pass_manager_success.run.assert_called_once_with("input_circuit")
-        mock_dumps_qasm_success.assert_called_once_with(mock_pass_manager_success.run.return_value, circuit_format="qasm3")
         mock_ai_synthesis_success.assert_called_once_with(
             backend=mock_get_backend_service_success.return_value["backend"],
             optimization_level=1,
@@ -171,12 +168,9 @@ class TestAIRouting:
             backend_name=mock_backend,
         )
         assert result["status"] == "success"
-        assert result["optimized_circuit"] == "optimized_circuit"
-        assert result["circuit_format"] == "qasm3"
+        assert result["optimized_circuit_qpy"] == "optimized_circuit_qpy"
         mock_get_backend_service_success.assert_awaited_once_with(backend_name=mock_backend)
         mock_load_qasm_circuit_success.assert_called_once_with("dummy_circuit_qasm", circuit_format="qasm3")
-        mock_pass_manager_success.run.assert_called_once_with("input_circuit")
-        mock_dumps_qasm_success.assert_called_once_with(mock_pass_manager_success.run.return_value, circuit_format="qasm3")
         mock_ai_routing_success.assert_called_once_with(
             backend=mock_get_backend_service_success.return_value["backend"],
             optimization_level=1,
@@ -282,12 +276,9 @@ class TestAICliffordSynthesis:
         )
 
         assert result["status"] == "success"
-        assert result["optimized_circuit"] == "optimized_circuit"
-        assert result["circuit_format"] == "qasm3"
+        assert result["optimized_circuit_qpy"] == "optimized_circuit_qpy"
         mock_get_backend_service_success.assert_awaited_once_with(backend_name=mock_backend)
         mock_load_qasm_circuit_success.assert_called_once_with("dummy_circuit_qasm", circuit_format="qasm3")
-        mock_pass_manager_success.run.assert_called_once_with("input_circuit")
-        mock_dumps_qasm_success.assert_called_once_with(mock_pass_manager_success.run.return_value, circuit_format="qasm3")
         mock_ai_clifford_synthesis_success.assert_called_once_with(
             backend=mock_get_backend_service_success.return_value["backend"],
             replace_only_if_better=True,
@@ -391,12 +382,9 @@ class TestAILinearFunctionSynthesis:
         )
 
         assert result["status"] == "success"
-        assert result["optimized_circuit"] == "optimized_circuit"
-        assert result["circuit_format"] == "qasm3"
+        assert result["optimized_circuit_qpy"] == "optimized_circuit_qpy"
         mock_get_backend_service_success.assert_awaited_once_with(backend_name=mock_backend)
         mock_load_qasm_circuit_success.assert_called_once_with(mock_circuit_qasm, circuit_format="qasm3")
-        mock_pass_manager_success.run.assert_called_once_with("input_circuit")
-        mock_dumps_qasm_success.assert_called_once_with(mock_pass_manager_success.run.return_value, circuit_format="qasm3")
         mock_ai_linear_function_synthesis_success.assert_called_once_with(
             backend=mock_get_backend_service_success.return_value["backend"],
             replace_only_if_better=True,
@@ -500,12 +488,9 @@ class TestAIPermutationSynthesis:
         )
 
         assert result["status"] == "success"
-        assert result["optimized_circuit"] == "optimized_circuit"
-        assert result["circuit_format"] == "qasm3"
+        assert result["optimized_circuit_qpy"] == "optimized_circuit_qpy"
         mock_get_backend_service_success.assert_awaited_once_with(backend_name=mock_backend)
         mock_load_qasm_circuit_success.assert_called_once_with(mock_circuit_qasm, circuit_format="qasm3")
-        mock_pass_manager_success.run.assert_called_once_with("input_circuit")
-        mock_dumps_qasm_success.assert_called_once_with(mock_pass_manager_success.run.return_value, circuit_format="qasm3")
         mock_ai_permutation_synthesis_success.assert_called_once_with(
             backend=mock_get_backend_service_success.return_value["backend"],
             replace_only_if_better=True,
@@ -609,12 +594,9 @@ class TestAIPauliNetworkSynthesis:
         )
 
         assert result["status"] == "success"
-        assert result["optimized_circuit"] == "optimized_circuit"
-        assert result["circuit_format"] == "qasm3"
+        assert result["optimized_circuit_qpy"] == "optimized_circuit_qpy"
         mock_get_backend_service_success.assert_awaited_once_with(backend_name=mock_backend)
         mock_load_qasm_circuit_success.assert_called_once_with(mock_circuit_qasm, circuit_format="qasm3")
-        mock_pass_manager_success.run.assert_called_once_with("input_circuit")
-        mock_dumps_qasm_success.assert_called_once_with(mock_pass_manager_success.run.return_value, circuit_format="qasm3")
         mock_ai_pauli_network_synthesis_success.assert_called_once_with(
             backend=mock_get_backend_service_success.return_value["backend"],
             replace_only_if_better=True,

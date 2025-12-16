@@ -49,6 +49,9 @@ async def _run_synthesis_pass(
         synthesis_pass_class: the specific AI synthesis procedure to be executed
         pass_kwargs: args for the AI synthesis class (e.g., `optimization_preferences`, `layout_mode`, `local_mode`, ...)
         circuit_format: format of the input circuit ("qasm3" or "qpy"). Defaults to "qasm3".
+
+    Returns:
+        Dictionary with QPY format of the optimized circuit (base64-encoded).
     """
     if not backend_name or not backend_name.strip():
         return {
@@ -68,10 +71,11 @@ async def _run_synthesis_pass(
         loaded_quantum_circuit = load_circuit(circuit, circuit_format=circuit_format)
         if loaded_quantum_circuit["status"] == "success":
             ai_optimized_circuit = ai_synthesis_pass.run(loaded_quantum_circuit["circuit"])
+            # Return QPY format (source of truth for precision and chaining)
+            qpy_str = dump_circuit(ai_optimized_circuit, circuit_format="qpy")
             return {
                 "status": "success",
-                "optimized_circuit": dump_circuit(ai_optimized_circuit, circuit_format=circuit_format),
-                "circuit_format": circuit_format,
+                "optimized_circuit_qpy": qpy_str,
             }
         else:
             return {"status": "error", "message": loaded_quantum_circuit["message"]}

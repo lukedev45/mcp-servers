@@ -63,8 +63,7 @@ class TestAIRoutingSync:
         """
         mock_response = {
             "status": "success",
-            "optimized_circuit": "optimized_circuit",
-            "circuit_format": "qasm3",
+            "optimized_circuit_qpy": "optimized_circuit_qpy",
         }
         mocker_run_sync = mocker.patch(
             "qiskit_mcp_server.utils._run_async",
@@ -75,7 +74,7 @@ class TestAIRoutingSync:
             backend_name=mock_backend,
         )
         assert result["status"] == "success"
-        assert result["optimized_circuit"] == "optimized_circuit"
+        assert result["optimized_circuit_qpy"] == "optimized_circuit_qpy"
         mocker_run_sync.assert_called_once()
 
     @pytest.mark.parametrize(
@@ -161,8 +160,7 @@ class TestAICliffordSync:
         """
         mock_response = {
             "status": "success",
-            "optimized_circuit": "optimized_circuit",
-            "circuit_format": "qasm3",
+            "optimized_circuit_qpy": "optimized_circuit_qpy",
         }
         mocker_run_sync = mocker.patch(
             "qiskit_mcp_server.utils._run_async",
@@ -173,7 +171,7 @@ class TestAICliffordSync:
             backend_name=mock_backend,
         )
         assert result["status"] == "success"
-        assert result["optimized_circuit"] == "optimized_circuit"
+        assert result["optimized_circuit_qpy"] == "optimized_circuit_qpy"
         mocker_run_sync.assert_called_once()
 
     @pytest.mark.parametrize(
@@ -259,8 +257,7 @@ class TestAILinearFunctionSync:
         """
         mock_response = {
             "status": "success",
-            "optimized_circuit": "optimized_circuit",
-            "circuit_format": "qasm3",
+            "optimized_circuit_qpy": "optimized_circuit_qpy",
         }
         mocker_run_sync = mocker.patch(
             "qiskit_mcp_server.utils._run_async",
@@ -271,7 +268,7 @@ class TestAILinearFunctionSync:
             backend_name=mock_backend,
         )
         assert result["status"] == "success"
-        assert result["optimized_circuit"] == "optimized_circuit"
+        assert result["optimized_circuit_qpy"] == "optimized_circuit_qpy"
         mocker_run_sync.assert_called_once()
 
     @pytest.mark.parametrize(
@@ -357,8 +354,7 @@ class TestAIPermutationSync:
         """
         mock_response = {
             "status": "success",
-            "optimized_circuit": "optimized_circuit",
-            "circuit_format": "qasm3",
+            "optimized_circuit_qpy": "optimized_circuit_qpy",
         }
         mocker_run_sync = mocker.patch(
             "qiskit_mcp_server.utils._run_async",
@@ -369,7 +365,7 @@ class TestAIPermutationSync:
             backend_name=mock_backend,
         )
         assert result["status"] == "success"
-        assert result["optimized_circuit"] == "optimized_circuit"
+        assert result["optimized_circuit_qpy"] == "optimized_circuit_qpy"
         mocker_run_sync.assert_called_once()
 
     @pytest.mark.parametrize(
@@ -455,8 +451,7 @@ class TestAIPauliNetworkSync:
         """
         mock_response = {
             "status": "success",
-            "optimized_circuit": "optimized_circuit",
-            "circuit_format": "qasm3",
+            "optimized_circuit_qpy": "optimized_circuit_qpy",
         }
         mocker_run_sync = mocker.patch(
             "qiskit_mcp_server.utils._run_async",
@@ -467,7 +462,7 @@ class TestAIPauliNetworkSync:
             backend_name=mock_backend,
         )
         assert result["status"] == "success"
-        assert result["optimized_circuit"] == "optimized_circuit"
+        assert result["optimized_circuit_qpy"] == "optimized_circuit_qpy"
         mocker_run_sync.assert_called_once()
 
     @pytest.mark.parametrize(

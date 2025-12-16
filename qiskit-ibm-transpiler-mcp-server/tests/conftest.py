@@ -176,17 +176,17 @@ def mock_dumps_qasm_failure(mocker):
 
 @pytest.fixture
 def mock_dumps_qasm_success(mocker):
-    """Successful dump_circuit method"""
+    """Successful dump_circuit method - returns QPY format"""
     mock = mocker.patch("qiskit_ibm_transpiler_mcp_server.qta.dump_circuit")
-    mock.return_value = "optimized_circuit"
+    mock.return_value = "optimized_circuit_qpy"
     return mock
 
 
 @pytest.fixture
 def mock_dump_circuit_success(mocker):
-    """Successful dump_circuit method (QASM3 or QPY)"""
+    """Successful dump_circuit method - returns QPY format"""
     mock = mocker.patch("qiskit_ibm_transpiler_mcp_server.qta.dump_circuit")
-    mock.return_value = "optimized_circuit"
+    mock.return_value = "optimized_circuit_qpy"
     return mock
 
 

@@ -144,13 +144,14 @@ class TestTranspileCircuit:
         assert "parse" in result["message"].lower() or "valid" in result["message"].lower()
 
     @pytest.mark.asyncio
-    async def test_transpiled_circuit_has_circuit_output(self, simple_circuit_qasm: str) -> None:
-        """Test that transpiled circuit includes circuit output."""
+    async def test_transpiled_circuit_has_qpy_output(self, simple_circuit_qasm: str) -> None:
+        """Test that transpiled circuit includes QPY output."""
         result = await transpile_circuit(simple_circuit_qasm)
 
         assert result["status"] == "success"
+        # QPY format should be present as 'circuit'
         assert result["transpiled_circuit"]["circuit"] is not None
-        assert result["circuit_format"] == "qasm3"
+        assert result["original_circuit"]["circuit"] is not None
 
 
 class TestAnalyzeCircuit:
@@ -357,32 +358,34 @@ class TestCircuitFormat:
     """Tests for circuit format support (QASM3, QPY, QASM2 fallback)."""
 
     @pytest.mark.asyncio
-    async def test_transpile_with_qpy_format(self, simple_circuit_qpy: str) -> None:
-        """Test transpiling a QPY-encoded circuit."""
+    async def test_transpile_with_qpy_input(self, simple_circuit_qpy: str) -> None:
+        """Test transpiling a QPY-encoded circuit returns QPY output."""
         result = await transpile_circuit(simple_circuit_qpy, circuit_format="qpy")
 
         assert result["status"] == "success"
-        assert result["circuit_format"] == "qpy"
         assert result["original_circuit"]["num_qubits"] == 2
+        # QPY format returned as 'circuit'
         assert result["transpiled_circuit"]["circuit"] is not None
 
     @pytest.mark.asyncio
-    async def test_analyze_with_qpy_format(self, simple_circuit_qpy: str) -> None:
-        """Test analyzing a QPY-encoded circuit."""
+    async def test_analyze_with_qpy_input(self, simple_circuit_qpy: str) -> None:
+        """Test analyzing a QPY-encoded circuit returns QPY output."""
         result = await analyze_circuit(simple_circuit_qpy, circuit_format="qpy")
 
         assert result["status"] == "success"
         assert result["circuit_info"]["num_qubits"] == 2
+        assert result["circuit_info"]["circuit"] is not None
 
     @pytest.mark.asyncio
-    async def test_compare_levels_with_qpy_format(self, simple_circuit_qpy: str) -> None:
+    async def test_compare_levels_with_qpy_input(self, simple_circuit_qpy: str) -> None:
         """Test comparing optimization levels with QPY-encoded circuit."""
         result = await compare_optimization_levels(simple_circuit_qpy, circuit_format="qpy")
 
         assert result["status"] == "success"
-        assert result["circuit_format"] == "qpy"
         for level in range(4):
             assert f"level_{level}" in result["optimization_results"]
+        # Original circuit has QPY format
+        assert result["original_circuit"]["circuit"] is not None
 
     @pytest.mark.asyncio
     async def test_qasm2_fallback(self, simple_circuit_qasm: str) -> None:
@@ -394,14 +397,15 @@ class TestCircuitFormat:
         assert result["original_circuit"]["num_qubits"] == 2
 
     def test_transpile_qpy_sync(self, simple_circuit_qpy: str) -> None:
-        """Test synchronous transpile_circuit call with QPY format."""
+        """Test synchronous transpile_circuit call with QPY input."""
         result = transpile_circuit.sync(simple_circuit_qpy, circuit_format="qpy")
 
         assert result["status"] == "success"
-        assert result["circuit_format"] == "qpy"
+        # QPY format returned as 'circuit'
+        assert result["transpiled_circuit"]["circuit"] is not None
 
     def test_analyze_qpy_sync(self, simple_circuit_qpy: str) -> None:
-        """Test synchronous analyze_circuit call with QPY format."""
+        """Test synchronous analyze_circuit call with QPY input."""
         result = analyze_circuit.sync(simple_circuit_qpy, circuit_format="qpy")
 
         assert result["status"] == "success"

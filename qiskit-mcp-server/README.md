@@ -117,8 +117,11 @@ qpy_circuit = dump_qpy_circuit(qc)
 
 # Transpile using QPY format
 result = await transpile_circuit(qpy_circuit, circuit_format="qpy")
-# Result includes transpiled circuit in QPY format
+# Result includes transpiled circuit in QPY format (for chaining)
 transpiled_qpy = result["transpiled_circuit"]["circuit"]
+
+# Chain to another operation using QPY
+result2 = await transpile_circuit(transpiled_qpy, circuit_format="qpy", optimization_level=3)
 ```
 
 ### Sync Usage (DSPy, Jupyter, Scripts)
@@ -203,16 +206,36 @@ Compare transpilation results across all optimization levels.
 
 ### Circuit Format Support
 
-The server supports two circuit formats:
+The server supports two circuit formats for **input**:
 
 | Format | Description |
 |--------|-------------|
 | `qasm3` | OpenQASM 3.0 string (with QASM2 fallback). Human-readable text format. |
 | `qpy` | Base64-encoded QPY binary format. Preserves exact parameters and metadata. |
 
+**QPY output:** All tools return circuits in QPY format (base64-encoded) for precision when chaining tools/servers.
+
 **When to use each format:**
-- **QASM3** (default): Best for human-readable circuits, debugging, and interoperability
-- **QPY**: Best for preserving exact numerical parameters and circuit metadata when passing circuits between MCP servers
+- **QASM3** (input): Best for human-readable circuits and initial input
+- **QPY** (input/output): Best for preserving exact numerical parameters when chaining tools/servers
+
+### Converting QPY to Human-Readable QASM3
+
+To view a QPY circuit output in human-readable format, use the `qpy_to_qasm3` utility:
+
+```python
+from qiskit_mcp_server import qpy_to_qasm3
+from qiskit_mcp_server.transpiler import transpile_circuit
+
+# Transpile a circuit (returns QPY format)
+result = transpile_circuit.sync(qasm_circuit, optimization_level=2)
+qpy_output = result["transpiled_circuit"]["circuit"]
+
+# Convert to human-readable QASM3
+conversion = qpy_to_qasm3(qpy_output)
+if conversion["status"] == "success":
+    print(conversion["qasm3"])
+```
 
 ### Available Basis Gate Sets
 

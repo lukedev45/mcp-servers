@@ -20,6 +20,7 @@ from qiskit_mcp_server.circuit_serialization import (
     load_circuit,
     load_qasm_circuit,
     load_qpy_circuit,
+    qpy_to_qasm3,
 )
 
 
@@ -248,3 +249,56 @@ class TestRoundTrip:
 
         loaded_circuit = result["circuit"]
         assert loaded_circuit.name == "my_test_circuit"
+
+
+class TestQpyToQasm3:
+    """Tests for qpy_to_qasm3 conversion utility."""
+
+    def test_qpy_to_qasm3_success(self, simple_circuit):
+        """Test successful QPY to QASM3 conversion."""
+        # First create QPY string
+        qpy_str = dump_qpy_circuit(simple_circuit)
+
+        # Convert to QASM3
+        result = qpy_to_qasm3(qpy_str)
+
+        assert result["status"] == "success"
+        assert "qasm3" in result
+        assert isinstance(result["qasm3"], str)
+        assert "OPENQASM" in result["qasm3"]
+
+    def test_qpy_to_qasm3_invalid_qpy(self):
+        """Test qpy_to_qasm3 with invalid QPY data."""
+        result = qpy_to_qasm3("not-valid-base64!")
+
+        assert result["status"] == "error"
+        assert "message" in result
+        assert "Invalid QPY data" in result["message"]
+
+    def test_qpy_to_qasm3_invalid_base64(self):
+        """Test qpy_to_qasm3 with valid base64 but invalid QPY."""
+        import base64
+
+        invalid_data = base64.b64encode(b"not qpy data").decode("utf-8")
+        result = qpy_to_qasm3(invalid_data)
+
+        assert result["status"] == "error"
+        assert "message" in result
+
+    def test_qpy_to_qasm3_preserves_structure(self, simple_circuit):
+        """Test that qpy_to_qasm3 produces valid QASM3 that can be re-loaded."""
+        # Create QPY
+        qpy_str = dump_qpy_circuit(simple_circuit)
+
+        # Convert to QASM3
+        result = qpy_to_qasm3(qpy_str)
+        assert result["status"] == "success"
+
+        # Load the QASM3 back
+        load_result = load_qasm_circuit(result["qasm3"])
+        assert load_result["status"] == "success"
+
+        # Verify structure is preserved
+        loaded_circuit = load_result["circuit"]
+        assert loaded_circuit.num_qubits == simple_circuit.num_qubits
+        assert loaded_circuit.depth() == simple_circuit.depth()

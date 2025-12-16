@@ -26,6 +26,7 @@ from qiskit_mcp_server.circuit_serialization import (
     load_circuit,
     load_qasm_circuit,
     load_qpy_circuit,
+    qpy_to_qasm3,
 )
 from qiskit_mcp_server.utils import with_sync
 
@@ -44,6 +45,7 @@ __all__ = [
     "load_qasm_circuit",
     "load_qpy_circuit",
     "main",
+    "qpy_to_qasm3",
     "server",
     "with_sync",
 ]

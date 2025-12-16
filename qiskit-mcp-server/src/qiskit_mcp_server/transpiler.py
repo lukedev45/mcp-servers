@@ -120,17 +120,16 @@ def _parse_coupling_map(
     return CouplingMap(coupling_map)
 
 
-def _circuit_to_dict(
-    circuit: QuantumCircuit, circuit_format: CircuitFormat = "qasm3"
-) -> dict[str, Any]:
+def _circuit_to_dict(circuit: QuantumCircuit) -> dict[str, Any]:
     """Convert a QuantumCircuit to a dictionary representation.
+
+    Exports the circuit in QPY format (source of truth for precision when chaining).
 
     Args:
         circuit: The quantum circuit to convert
-        circuit_format: Output format for circuit serialization ("qasm3" or "qpy")
 
     Returns:
-        Dictionary with circuit information
+        Dictionary with circuit information including QPY serialization
     """
     # Get operation counts
     op_counts: dict[str, int] = {}
@@ -141,17 +140,10 @@ def _circuit_to_dict(
     # Calculate depth
     depth = circuit.depth()
 
-    # Serialize circuit using the shared library
-    circuit_str: str | None = None
-    export_error: str | None = None
+    # Serialize circuit in QPY format (source of truth)
+    qpy_str = dump_circuit(circuit, circuit_format="qpy")
 
-    try:
-        circuit_str = dump_circuit(circuit, circuit_format=circuit_format)
-    except Exception as e:
-        logger.debug(f"{circuit_format.upper()} export failed: {e}")
-        export_error = f"Circuit cannot be exported to {circuit_format.upper()}: {e}"
-
-    result: dict[str, Any] = {
+    return {
         "num_qubits": circuit.num_qubits,
         "num_clbits": circuit.num_clbits,
         "depth": depth,
@@ -159,14 +151,8 @@ def _circuit_to_dict(
         "width": circuit.width(),
         "operation_counts": op_counts,
         "total_operations": sum(op_counts.values()),
-        "circuit": circuit_str,
-        "circuit_format": circuit_format,
+        "circuit": qpy_str,  # QPY format (use for chaining tools/servers)
     }
-
-    if export_error and circuit_str is None:
-        result["export_error"] = export_error
-
-    return result
 
 
 def _parse_circuit(circuit_input: str, circuit_format: CircuitFormat = "qasm3") -> QuantumCircuit:
@@ -356,7 +342,7 @@ async def transpile_circuit(
             return {"status": "error", "message": str(e)}
 
         # Get original circuit info
-        original_info = _circuit_to_dict(parsed_circuit, circuit_format=circuit_format)
+        original_info = _circuit_to_dict(parsed_circuit)
 
         # Log warning for level 3 with large circuits
         if optimization_level == 3 and (
@@ -380,7 +366,7 @@ async def transpile_circuit(
         transpiled = pm.run(parsed_circuit)
 
         # Get transpiled circuit info
-        transpiled_info = _circuit_to_dict(transpiled, circuit_format=circuit_format)
+        transpiled_info = _circuit_to_dict(transpiled)
 
         # Calculate improvements
         depth_reduction = original_info["depth"] - transpiled_info["depth"]
@@ -399,7 +385,6 @@ async def transpile_circuit(
             "optimization_level": optimization_level,
             "basis_gates": resolved_basis_gates,
             "coupling_map_type": coupling_map if isinstance(coupling_map, str) else "custom",
-            "circuit_format": circuit_format,
             "improvements": {
                 "depth_reduction": depth_reduction,
                 "depth_reduction_percent": round(depth_reduction_pct, 2),
@@ -449,7 +434,7 @@ async def analyze_circuit(circuit: str, circuit_format: CircuitFormat = "qasm3")
         except ValueError as e:
             return {"status": "error", "message": str(e)}
 
-        info = _circuit_to_dict(parsed_circuit, circuit_format=circuit_format)
+        info = _circuit_to_dict(parsed_circuit)
 
         # Categorize gates
         two_qubit_gates = 0
@@ -552,11 +537,10 @@ async def compare_optimization_levels(
                 "message": f"Circuit has {parsed_circuit.num_qubits} qubits, exceeding maximum of {MAX_QUBITS}.",
             }
 
-        original_info = _circuit_to_dict(parsed_circuit, circuit_format=circuit_format)
+        original_info = _circuit_to_dict(parsed_circuit)
         results: dict[str, Any] = {
             "status": "success",
             "original_circuit": original_info,
-            "circuit_format": circuit_format,
             "optimization_results": {},
         }
 

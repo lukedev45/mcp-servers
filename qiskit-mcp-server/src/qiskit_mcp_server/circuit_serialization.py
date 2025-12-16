@@ -208,3 +208,47 @@ def dump_circuit(circuit: QuantumCircuit, circuit_format: CircuitFormat = "qasm3
     if circuit_format == "qpy":
         return dump_qpy_circuit(circuit)
     return dump_qasm_circuit(circuit)
+
+
+def qpy_to_qasm3(qpy_b64: str) -> dict[str, Any]:
+    """Convert a base64-encoded QPY circuit to human-readable QASM3 format.
+
+    This is a convenience function for viewing QPY circuit output from MCP tools
+    in a human-readable format.
+
+    Args:
+        qpy_b64: A base64-encoded string containing QPY binary data.
+
+    Returns:
+        A dictionary with:
+        - status: "success" or "error"
+        - qasm3: The QASM 3.0 string representation (if successful)
+        - message: Error message (if failed)
+
+    Example:
+        >>> from qiskit_mcp_server import qpy_to_qasm3
+        >>> # After getting QPY output from transpile_circuit
+        >>> result = qpy_to_qasm3(transpiled_qpy)
+        >>> if result["status"] == "success":
+        ...     print(result["qasm3"])
+    """
+    load_result = load_qpy_circuit(qpy_b64)
+    if load_result["status"] == "error":
+        return {
+            "status": "error",
+            "message": load_result["message"],
+        }
+
+    circuit = load_result["circuit"]
+    try:
+        qasm3_str = dump_qasm_circuit(circuit)
+        return {
+            "status": "success",
+            "qasm3": qasm3_str,
+        }
+    except Exception as e:
+        logger.error(f"Error converting to QASM3: {e}")
+        return {
+            "status": "error",
+            "message": f"Failed to convert circuit to QASM3: {e}",
+        }

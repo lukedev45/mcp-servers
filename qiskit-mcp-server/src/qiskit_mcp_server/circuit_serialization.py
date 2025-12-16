@@ -75,7 +75,7 @@ def detect_circuit_format(circuit_data: str) -> CircuitFormat:
         "qpy" if the data appears to be base64-encoded QPY.
 
     Example:
-        >>> format_type = detect_circuit_format('OPENQASM 3.0; ...')
+        >>> format_type = detect_circuit_format("OPENQASM 3.0; ...")
         >>> format_type
         'qasm3'
     """

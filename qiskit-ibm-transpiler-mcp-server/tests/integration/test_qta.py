@@ -24,6 +24,7 @@ from qiskit_ibm_transpiler_mcp_server.qta import (
 
 from tests.utils.helpers import calculate_2q_count_and_depth_improvement
 
+
 # Get the path to the tests directory
 TESTS_DIR = Path(__file__).parent.parent
 
@@ -170,9 +171,7 @@ class TestAILinearFunctionSynthesis:
 
         with open(TESTS_DIR / "qasm" / "correct_qasm_1") as f:
             qasm_str = f.read()
-        result = await ai_linear_function_synthesis(
-            circuit=qasm_str, backend_name=backend_name
-        )
+        result = await ai_linear_function_synthesis(circuit=qasm_str, backend_name=backend_name)
         assert result["status"] == "success"
 
         improvements = calculate_2q_count_and_depth_improvement(
@@ -196,9 +195,7 @@ class TestAILinearFunctionSynthesis:
         with open(TESTS_DIR / "qasm" / "correct_qasm_1") as f:
             qasm_str = f.read()
         backend_name = "ibm_fake"
-        result = await ai_linear_function_synthesis(
-            circuit=qasm_str, backend_name=backend_name
-        )
+        result = await ai_linear_function_synthesis(circuit=qasm_str, backend_name=backend_name)
         assert result["status"] == "error"
         assert "Failed to find backend ibm_fake" in result["message"]
 
@@ -223,9 +220,7 @@ class TestAILinearFunctionSynthesis:
         with open(TESTS_DIR / "qasm" / "wrong_qasm_1") as f:
             qasm_str = f.read()
 
-        result = await ai_linear_function_synthesis(
-            circuit=qasm_str, backend_name=backend_name
-        )
+        result = await ai_linear_function_synthesis(circuit=qasm_str, backend_name=backend_name)
         assert result["status"] == "error"
 
 

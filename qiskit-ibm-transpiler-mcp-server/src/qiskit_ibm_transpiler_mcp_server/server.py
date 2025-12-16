@@ -13,6 +13,7 @@ import logging
 from typing import Any, Literal
 
 from fastmcp import FastMCP
+from qiskit_mcp_server.circuit_serialization import qpy_to_qasm3
 
 from qiskit_ibm_transpiler_mcp_server.qta import (
     ai_clifford_synthesis,
@@ -22,7 +23,6 @@ from qiskit_ibm_transpiler_mcp_server.qta import (
     ai_routing,
 )
 from qiskit_ibm_transpiler_mcp_server.utils import CircuitFormat, setup_ibm_quantum_account
-from qiskit_mcp_server.circuit_serialization import qpy_to_qasm3
 
 
 logger = logging.getLogger(__name__)

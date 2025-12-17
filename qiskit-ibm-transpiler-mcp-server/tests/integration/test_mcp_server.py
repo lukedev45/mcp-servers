@@ -124,12 +124,15 @@ class TestEndToEndScenarios:
         # 3. AI Routing
         ai_routing_result = await ai_routing(circuit=qasm_string, backend_name="ibm_fez")
         assert ai_routing_result["status"] == "success"
-        assert isinstance(ai_routing_result["optimized_circuit"], str)
+        assert isinstance(ai_routing_result["circuit_qpy"], str)  # base64-encoded QPY
+        assert isinstance(ai_routing_result["optimized_circuit"], dict)  # metrics
+        assert "num_qubits" in ai_routing_result["optimized_circuit"]
 
-        # 4. AI Clifford synthesis
-        routed_qasm_circuit = ai_routing_result["optimized_circuit"]
+        # 4. AI Clifford synthesis - chain using QPY output
+        routed_qpy_circuit = ai_routing_result["circuit_qpy"]
         ai_clifford_synthesis_result = await ai_clifford_synthesis(
-            circuit=routed_qasm_circuit, backend_name="ibm_fez"
+            circuit=routed_qpy_circuit, backend_name="ibm_fez", circuit_format="qpy"
         )
         assert ai_clifford_synthesis_result["status"] == "success"
-        assert isinstance(ai_clifford_synthesis_result["optimized_circuit"], str)
+        assert isinstance(ai_clifford_synthesis_result["circuit_qpy"], str)
+        assert isinstance(ai_clifford_synthesis_result["optimized_circuit"], dict)

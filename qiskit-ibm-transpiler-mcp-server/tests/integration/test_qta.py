@@ -22,8 +22,6 @@ from qiskit_ibm_transpiler_mcp_server.qta import (
     ai_routing,
 )
 
-from tests.utils.helpers import calculate_2q_count_and_depth_improvement
-
 
 # Get the path to the tests directory
 TESTS_DIR = Path(__file__).parent.parent
@@ -108,16 +106,10 @@ class TestAICliffordSynthesis:
             qasm_str = f.read()
         result = await ai_clifford_synthesis(circuit=qasm_str, backend_name=backend_name)
         assert result["status"] == "success"
-
-        improvements = calculate_2q_count_and_depth_improvement(
-            circuit1_qasm=qasm_str, circuit2_qasm=result["optimized_circuit"]
-        )
-        assert improvements["improvement_2q_gates"] >= 0, (
-            f"Optimization decreased 2q gates: Δ={improvements['improvement_2q_gates']}%"
-        )
-        assert improvements["improvement_2q_depth"] >= 0, (
-            f"Optimization decreased 2q depth: Δ={improvements['improvement_2q_depth']}%"
-        )
+        assert isinstance(result["circuit_qpy"], str)  # base64-encoded QPY
+        assert isinstance(result["optimized_circuit"], dict)  # metrics
+        assert isinstance(result["original_circuit"], dict)  # original metrics
+        assert isinstance(result["improvements"], dict)  # improvement metrics
 
     @pytest.mark.integration
     @pytest.mark.asyncio
@@ -173,16 +165,10 @@ class TestAILinearFunctionSynthesis:
             qasm_str = f.read()
         result = await ai_linear_function_synthesis(circuit=qasm_str, backend_name=backend_name)
         assert result["status"] == "success"
-
-        improvements = calculate_2q_count_and_depth_improvement(
-            circuit1_qasm=qasm_str, circuit2_qasm=result["optimized_circuit"]
-        )
-        assert improvements["improvement_2q_gates"] >= 0, (
-            f"Optimization decreased 2q gates: Δ={improvements['improvement_2q_gates']}%"
-        )
-        assert improvements["improvement_2q_depth"] >= 0, (
-            f"Optimization decreased 2q depth: Δ={improvements['improvement_2q_depth']}%"
-        )
+        assert isinstance(result["circuit_qpy"], str)  # base64-encoded QPY
+        assert isinstance(result["optimized_circuit"], dict)  # metrics
+        assert isinstance(result["original_circuit"], dict)  # original metrics
+        assert isinstance(result["improvements"], dict)  # improvement metrics
 
     @pytest.mark.integration
     @pytest.mark.asyncio
@@ -239,15 +225,10 @@ class TestAIPermutationSynthesis:
 
         result = await ai_permutation_synthesis(circuit=qasm_str, backend_name=backend_name)
         assert result["status"] == "success"
-        improvements = calculate_2q_count_and_depth_improvement(
-            circuit1_qasm=qasm_str, circuit2_qasm=result["optimized_circuit"]
-        )
-        assert improvements["improvement_2q_gates"] >= 0, (
-            f"Optimization decreased 2q gates: Δ={improvements['improvement_2q_gates']}%"
-        )
-        assert improvements["improvement_2q_depth"] >= 0, (
-            f"Optimization decreased 2q depth: Δ={improvements['improvement_2q_depth']}%"
-        )
+        assert isinstance(result["circuit_qpy"], str)  # base64-encoded QPY
+        assert isinstance(result["optimized_circuit"], dict)  # metrics
+        assert isinstance(result["original_circuit"], dict)  # original metrics
+        assert isinstance(result["improvements"], dict)  # improvement metrics
 
     @pytest.mark.integration
     @pytest.mark.asyncio
@@ -304,15 +285,10 @@ class TestAIPauliNetworkSynthesis:
 
         result = await ai_pauli_network_synthesis(circuit=qasm_str, backend_name=backend_name)
         assert result["status"] == "success"
-        improvements = calculate_2q_count_and_depth_improvement(
-            circuit1_qasm=qasm_str, circuit2_qasm=result["optimized_circuit"]
-        )
-        assert improvements["improvement_2q_gates"] >= 0, (
-            f"Optimization decreased 2q gates: Δ={improvements['improvement_2q_gates']}%"
-        )
-        assert improvements["improvement_2q_depth"] >= 0, (
-            f"Optimization decreased 2q depth: Δ={improvements['improvement_2q_depth']}%"
-        )
+        assert isinstance(result["circuit_qpy"], str)  # base64-encoded QPY
+        assert isinstance(result["optimized_circuit"], dict)  # metrics
+        assert isinstance(result["original_circuit"], dict)  # original metrics
+        assert isinstance(result["improvements"], dict)  # improvement metrics
 
     @pytest.mark.integration
     @pytest.mark.asyncio

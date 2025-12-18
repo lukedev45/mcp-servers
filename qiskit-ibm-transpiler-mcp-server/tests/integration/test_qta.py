@@ -20,6 +20,7 @@ from qiskit_ibm_transpiler_mcp_server.qta import (
     ai_pauli_network_synthesis,
     ai_permutation_synthesis,
     ai_routing,
+    hybrid_ai_transpile,
 )
 
 from tests.utils.helpers import validate_synthesis_result
@@ -313,4 +314,86 @@ class TestAIPauliNetworkSynthesis:
             qasm_str = f.read()
 
         result = await ai_pauli_network_synthesis(circuit=qasm_str, backend_name=backend_name)
+        assert result["status"] == "error"
+
+
+class TestHybridAITranspile:
+    """Test hybrid AI transpilation tool"""
+
+    @pytest.mark.integration
+    @pytest.mark.asyncio
+    async def test_hybrid_ai_transpile_success(self, backend_name):
+        """
+        Successful test hybrid AI transpilation with existing backend and quantum circuit.
+        """
+        with open(TESTS_DIR / "qasm" / "correct_qasm_1") as f:
+            qasm_str = f.read()
+
+        result = await hybrid_ai_transpile(
+            circuit=qasm_str,
+            backend_name=backend_name,
+        )
+        validate_synthesis_result(result)
+
+    @pytest.mark.integration
+    @pytest.mark.asyncio
+    async def test_hybrid_ai_transpile_with_custom_params(self, backend_name):
+        """
+        Test hybrid AI transpilation with custom optimization levels and layout mode.
+        """
+        with open(TESTS_DIR / "qasm" / "correct_qasm_1") as f:
+            qasm_str = f.read()
+
+        result = await hybrid_ai_transpile(
+            circuit=qasm_str,
+            backend_name=backend_name,
+            ai_optimization_level=1,
+            optimization_level=1,
+            ai_layout_mode="keep",
+        )
+        validate_synthesis_result(result)
+
+    @pytest.mark.integration
+    @pytest.mark.asyncio
+    async def test_hybrid_ai_transpile_failure_backend_name(self):
+        """
+        Failed test hybrid AI transpilation with wrong backend name.
+        """
+        with open(TESTS_DIR / "qasm" / "correct_qasm_1") as f:
+            qasm_str = f.read()
+        backend_name = "ibm_fake"
+
+        result = await hybrid_ai_transpile(
+            circuit=qasm_str,
+            backend_name=backend_name,
+        )
+        assert result["status"] == "error"
+        assert "Failed to find backend ibm_fake" in result["message"]
+
+    @pytest.mark.integration
+    @pytest.mark.asyncio
+    async def test_hybrid_ai_transpile_empty_backend(self):
+        """
+        Failed test hybrid AI transpilation with empty backend.
+        """
+        with open(TESTS_DIR / "qasm" / "correct_qasm_1") as f:
+            qasm_str = f.read()
+
+        result = await hybrid_ai_transpile(circuit=qasm_str, backend_name="")
+        assert result["status"] == "error"
+        assert result["message"] == "backend_name is required and cannot be empty"
+
+    @pytest.mark.integration
+    @pytest.mark.asyncio
+    async def test_hybrid_ai_transpile_failure_wrong_qasm_str(self, backend_name):
+        """
+        Failed test hybrid AI transpilation with wrong QASM string.
+        """
+        with open(TESTS_DIR / "qasm" / "wrong_qasm_1") as f:
+            qasm_str = f.read()
+
+        result = await hybrid_ai_transpile(
+            circuit=qasm_str,
+            backend_name=backend_name,
+        )
         assert result["status"] == "error"

@@ -63,18 +63,18 @@ class TestAIRoutingSync:
         """
         mock_response = {
             "status": "success",
-            "optimized_circuit_qasm": "optimized_circuit_qasm",
+            "circuit_qpy": "circuit_qpy",
         }
         mocker_run_sync = mocker.patch(
-            "qiskit_ibm_transpiler_mcp_server.utils._run_async",
+            "qiskit_mcp_server.utils._run_async",
             return_value=mock_response,
         )
         result = ai_routing.sync(
-            circuit_qasm=mock_circuit_qasm,
+            circuit=mock_circuit_qasm,
             backend_name=mock_backend,
         )
         assert result["status"] == "success"
-        assert result["optimized_circuit_qasm"] == "optimized_circuit_qasm"
+        assert result["circuit_qpy"] == "circuit_qpy"
         mocker_run_sync.assert_called_once()
 
     @pytest.mark.parametrize(
@@ -94,7 +94,7 @@ class TestAIRoutingSync:
                 "mock_pass_manager_success",
                 "mock_dumps_qasm_success",
                 "mock_ai_routing_success",
-                "Error in loading QuantumCircuit from QASM3.0",
+                "Error in loading QuantumCircuit",
             ),
             (
                 "mock_get_backend_service_success",
@@ -110,7 +110,7 @@ class TestAIRoutingSync:
                 "mock_pass_manager_success",
                 "mock_dumps_qasm_failure",
                 "mock_ai_routing_success",
-                "QASM dumps failed",
+                "Circuit dump failed",
             ),
             (
                 "mock_get_backend_service_success",
@@ -144,7 +144,7 @@ class TestAIRoutingSync:
         Failed test AI routing sync tool with existing backend, quantum circuit and PassManager
         """
         result = ai_routing.sync(
-            circuit_qasm=mock_circuit_qasm,
+            circuit=mock_circuit_qasm,
             backend_name=mock_backend,
         )
         assert result["status"] == "error"
@@ -160,18 +160,18 @@ class TestAICliffordSync:
         """
         mock_response = {
             "status": "success",
-            "optimized_circuit_qasm": "optimized_circuit_qasm",
+            "circuit_qpy": "circuit_qpy",
         }
         mocker_run_sync = mocker.patch(
-            "qiskit_ibm_transpiler_mcp_server.utils._run_async",
+            "qiskit_mcp_server.utils._run_async",
             return_value=mock_response,
         )
         result = ai_clifford_synthesis.sync(
-            circuit_qasm=mock_circuit_qasm,
+            circuit=mock_circuit_qasm,
             backend_name=mock_backend,
         )
         assert result["status"] == "success"
-        assert result["optimized_circuit_qasm"] == "optimized_circuit_qasm"
+        assert result["circuit_qpy"] == "circuit_qpy"
         mocker_run_sync.assert_called_once()
 
     @pytest.mark.parametrize(
@@ -191,7 +191,7 @@ class TestAICliffordSync:
                 "mock_pass_manager_success",
                 "mock_dumps_qasm_success",
                 "mock_ai_clifford_synthesis_success",
-                "Error in loading QuantumCircuit from QASM3.0",
+                "Error in loading QuantumCircuit",
             ),
             (
                 "mock_get_backend_service_success",
@@ -207,7 +207,7 @@ class TestAICliffordSync:
                 "mock_pass_manager_success",
                 "mock_dumps_qasm_failure",
                 "mock_ai_clifford_synthesis_success",
-                "QASM dumps failed",
+                "Circuit dump failed",
             ),
             (
                 "mock_get_backend_service_success",
@@ -241,7 +241,7 @@ class TestAICliffordSync:
         Failed test AI Clifford synthesis sync tool with existing backend, quantum circuit and PassManager.
         """
         result = ai_clifford_synthesis.sync(
-            circuit_qasm=mock_circuit_qasm,
+            circuit=mock_circuit_qasm,
             backend_name=mock_backend,
         )
         assert result["status"] == "error"
@@ -257,18 +257,18 @@ class TestAILinearFunctionSync:
         """
         mock_response = {
             "status": "success",
-            "optimized_circuit_qasm": "optimized_circuit_qasm",
+            "circuit_qpy": "circuit_qpy",
         }
         mocker_run_sync = mocker.patch(
-            "qiskit_ibm_transpiler_mcp_server.utils._run_async",
+            "qiskit_mcp_server.utils._run_async",
             return_value=mock_response,
         )
         result = ai_linear_function_synthesis.sync(
-            circuit_qasm=mock_circuit_qasm,
+            circuit=mock_circuit_qasm,
             backend_name=mock_backend,
         )
         assert result["status"] == "success"
-        assert result["optimized_circuit_qasm"] == "optimized_circuit_qasm"
+        assert result["circuit_qpy"] == "circuit_qpy"
         mocker_run_sync.assert_called_once()
 
     @pytest.mark.parametrize(
@@ -288,7 +288,7 @@ class TestAILinearFunctionSync:
                 "mock_pass_manager_success",
                 "mock_dumps_qasm_success",
                 "mock_ai_linear_function_synthesis_success",
-                "Error in loading QuantumCircuit from QASM3.0",
+                "Error in loading QuantumCircuit",
             ),
             (
                 "mock_get_backend_service_success",
@@ -304,7 +304,7 @@ class TestAILinearFunctionSync:
                 "mock_pass_manager_success",
                 "mock_dumps_qasm_failure",
                 "mock_ai_linear_function_synthesis_success",
-                "QASM dumps failed",
+                "Circuit dump failed",
             ),
             (
                 "mock_get_backend_service_success",
@@ -338,7 +338,7 @@ class TestAILinearFunctionSync:
         Failed test AI Linear Function synthesis sync tool with existing backend, quantum circuit and PassManager
         """
         result = ai_linear_function_synthesis.sync(
-            circuit_qasm=mock_circuit_qasm,
+            circuit=mock_circuit_qasm,
             backend_name=mock_backend,
         )
         assert result["status"] == "error"
@@ -354,18 +354,18 @@ class TestAIPermutationSync:
         """
         mock_response = {
             "status": "success",
-            "optimized_circuit_qasm": "optimized_circuit_qasm",
+            "circuit_qpy": "circuit_qpy",
         }
         mocker_run_sync = mocker.patch(
-            "qiskit_ibm_transpiler_mcp_server.utils._run_async",
+            "qiskit_mcp_server.utils._run_async",
             return_value=mock_response,
         )
         result = ai_permutation_synthesis.sync(
-            circuit_qasm=mock_circuit_qasm,
+            circuit=mock_circuit_qasm,
             backend_name=mock_backend,
         )
         assert result["status"] == "success"
-        assert result["optimized_circuit_qasm"] == "optimized_circuit_qasm"
+        assert result["circuit_qpy"] == "circuit_qpy"
         mocker_run_sync.assert_called_once()
 
     @pytest.mark.parametrize(
@@ -385,7 +385,7 @@ class TestAIPermutationSync:
                 "mock_pass_manager_success",
                 "mock_dumps_qasm_success",
                 "mock_ai_permutation_synthesis_success",
-                "Error in loading QuantumCircuit from QASM3.0",
+                "Error in loading QuantumCircuit",
             ),
             (
                 "mock_get_backend_service_success",
@@ -401,7 +401,7 @@ class TestAIPermutationSync:
                 "mock_pass_manager_success",
                 "mock_dumps_qasm_failure",
                 "mock_ai_permutation_synthesis_success",
-                "QASM dumps failed",
+                "Circuit dump failed",
             ),
             (
                 "mock_get_backend_service_success",
@@ -435,7 +435,7 @@ class TestAIPermutationSync:
         Failed test AI Permutation synthesis sync tool with existing backend, quantum circuit and PassManager
         """
         result = ai_permutation_synthesis.sync(
-            circuit_qasm=mock_circuit_qasm,
+            circuit=mock_circuit_qasm,
             backend_name=mock_backend,
         )
         assert result["status"] == "error"
@@ -451,18 +451,18 @@ class TestAIPauliNetworkSync:
         """
         mock_response = {
             "status": "success",
-            "optimized_circuit_qasm": "optimized_circuit_qasm",
+            "circuit_qpy": "circuit_qpy",
         }
         mocker_run_sync = mocker.patch(
-            "qiskit_ibm_transpiler_mcp_server.utils._run_async",
+            "qiskit_mcp_server.utils._run_async",
             return_value=mock_response,
         )
         result = ai_pauli_network_synthesis.sync(
-            circuit_qasm=mock_circuit_qasm,
+            circuit=mock_circuit_qasm,
             backend_name=mock_backend,
         )
         assert result["status"] == "success"
-        assert result["optimized_circuit_qasm"] == "optimized_circuit_qasm"
+        assert result["circuit_qpy"] == "circuit_qpy"
         mocker_run_sync.assert_called_once()
 
     @pytest.mark.parametrize(
@@ -482,7 +482,7 @@ class TestAIPauliNetworkSync:
                 "mock_pass_manager_success",
                 "mock_dumps_qasm_success",
                 "mock_ai_pauli_network_synthesis_success",
-                "Error in loading QuantumCircuit from QASM3.0",
+                "Error in loading QuantumCircuit",
             ),
             (
                 "mock_get_backend_service_success",
@@ -498,7 +498,7 @@ class TestAIPauliNetworkSync:
                 "mock_pass_manager_success",
                 "mock_dumps_qasm_failure",
                 "mock_ai_pauli_network_synthesis_success",
-                "QASM dumps failed",
+                "Circuit dump failed",
             ),
             (
                 "mock_get_backend_service_success",
@@ -532,7 +532,7 @@ class TestAIPauliNetworkSync:
         Failed test AI Pauli Network synthesis sync tool with existing backend, quantum circuit and PassManager
         """
         result = ai_pauli_network_synthesis.sync(
-            circuit_qasm=mock_circuit_qasm,
+            circuit=mock_circuit_qasm,
             backend_name=mock_backend,
         )
         assert result["status"] == "error"
@@ -550,7 +550,7 @@ class TestSetupIBMQuantumAccountSync:
             "channel": "ibm_quantum_platform",
             "available_backends": 10,
         }
-        run_async_mock = mocker.patch("qiskit_ibm_transpiler_mcp_server.utils._run_async")
+        run_async_mock = mocker.patch("qiskit_mcp_server.utils._run_async")
         run_async_mock.return_value = mock_response
         result = setup_ibm_quantum_account.sync("test_token")
         assert result["status"] == "success"
@@ -565,7 +565,7 @@ class TestSetupIBMQuantumAccountSync:
             "available_backends": 5,
         }
 
-        run_async_mock = mocker.patch("qiskit_ibm_transpiler_mcp_server.utils._run_async")
+        run_async_mock = mocker.patch("qiskit_mcp_server.utils._run_async")
         run_async_mock.return_value = mock_response
         result = setup_ibm_quantum_account.sync("")
 

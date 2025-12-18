@@ -9,14 +9,22 @@
 # Any modifications or derivative works of this code must retain this
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
-import asyncio
 import logging
 import os
-from collections.abc import Callable, Coroutine
-from functools import wraps
-from typing import Any, TypeVar
+from typing import Any
 
-from qiskit.qasm3 import loads
+# Import shared utilities from qiskit-mcp-server
+from qiskit_mcp_server import with_sync
+from qiskit_mcp_server.circuit_serialization import (
+    CircuitFormat,
+    detect_circuit_format,
+    dump_circuit,
+    dump_qasm_circuit,
+    dump_qpy_circuit,
+    load_circuit,
+    load_qasm_circuit,
+    load_qpy_circuit,
+)
 
 from qiskit_ibm_transpiler_mcp_server.qiskit_runtime_service_provider import (
     QiskitRuntimeServiceProvider,
@@ -28,73 +36,21 @@ logger = logging.getLogger(__name__)
 # Placeholder tokens that should be rejected during validation
 INVALID_PLACEHOLDER_TOKENS = frozenset(["<PASSWORD>", "<TOKEN>", "YOUR_TOKEN_HERE", "xxx"])
 
-# Apply nest_asyncio to allow running async code in environments with existing event loops
-try:
-    import nest_asyncio
-
-    nest_asyncio.apply()
-except ImportError:
-    pass
-
-
-F = TypeVar("F", bound=Callable[..., Any])
-T = TypeVar("T")
-
-
-def _run_async(coro: Coroutine[Any, Any, T]) -> T:
-    """Helper to run async functions synchronously.
-
-    This handles both cases:
-    - Running in a Jupyter notebook or other environment with an existing event loop
-    - Running in a standard Python script without an event loop
-    """
-    try:
-        loop = asyncio.get_event_loop()
-        # This works in Jupyter/running loops because nest_asyncio allows nested loops
-        return loop.run_until_complete(coro)
-    except RuntimeError:
-        # No event loop exists, create one
-        return asyncio.run(coro)
-
-
-def with_sync(func: F) -> F:
-    """Decorator that adds a `.sync` attribute to async functions for synchronous execution.
-
-    Usage:
-        @with_sync
-        async def my_async_function(arg: str) -> Dict[str, Any]:
-            ...
-
-        # Async call
-        result = await my_async_function("hello")
-
-        # Sync call
-        result = my_async_function.sync("hello")
-    """
-
-    @wraps(func)
-    def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
-        return _run_async(func(*args, **kwargs))
-
-    func.sync = sync_wrapper  # type: ignore[attr-defined]
-    return func
-
-
-def load_qasm_circuit(qasm_string: str) -> dict[str, Any]:
-    """
-    Load Qiskit QuantumCircuit from QASM 3.0 string.
-    Args:
-        qasm_string: QASM 3.0 string describing input circuit
-    """
-    try:
-        circuit = loads(qasm_string)
-        return {"status": "success", "circuit": circuit}
-    except Exception as e:
-        logger.error(f"Error in loading QuantumCircuit object from QASM 3.0 string: {e}")
-        return {
-            "status": "error",
-            "message": "QASM 3.0 string not valid. Cannot be loaded as QuantumCircuit.",
-        }
+# Re-export shared utilities for backwards compatibility
+__all__ = [
+    "CircuitFormat",
+    "detect_circuit_format",
+    "dump_circuit",
+    "dump_qasm_circuit",
+    "dump_qpy_circuit",
+    "get_backend_service",
+    "get_token_from_env",
+    "load_circuit",
+    "load_qasm_circuit",
+    "load_qpy_circuit",
+    "setup_ibm_quantum_account",
+    "with_sync",
+]
 
 
 async def get_backend_service(backend_name: str) -> dict[str, Any]:

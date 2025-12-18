@@ -15,6 +15,51 @@ from qiskit import QuantumCircuit
 from qiskit.qasm3 import loads
 
 
+def validate_synthesis_result(result: dict) -> None:
+    """Helper to validate synthesis result structure and values.
+
+    Validates that the result contains:
+    - status: "success"
+    - circuit_qpy: non-empty base64-encoded QPY string
+    - original_circuit: metrics dict with num_qubits, depth, size, two_qubit_gates
+    - optimized_circuit: metrics dict with num_qubits, depth, size, two_qubit_gates
+    - improvements: dict with depth_reduction and two_qubit_gate_reduction
+
+    Also verifies that improvement calculations are correct.
+    """
+    assert result["status"] == "success"
+    assert isinstance(result["circuit_qpy"], str)
+    assert len(result["circuit_qpy"]) > 0  # Non-empty QPY
+
+    # Validate original_circuit metrics
+    orig = result["original_circuit"]
+    assert isinstance(orig, dict)
+    assert "num_qubits" in orig and isinstance(orig["num_qubits"], int)
+    assert "depth" in orig and isinstance(orig["depth"], int)
+    assert "size" in orig and isinstance(orig["size"], int)
+    assert "two_qubit_gates" in orig and isinstance(orig["two_qubit_gates"], int)
+    assert orig["num_qubits"] > 0
+
+    # Validate optimized_circuit metrics
+    opt = result["optimized_circuit"]
+    assert isinstance(opt, dict)
+    assert "num_qubits" in opt and isinstance(opt["num_qubits"], int)
+    assert "depth" in opt and isinstance(opt["depth"], int)
+    assert "size" in opt and isinstance(opt["size"], int)
+    assert "two_qubit_gates" in opt and isinstance(opt["two_qubit_gates"], int)
+    # Qubit count should be preserved
+    assert opt["num_qubits"] == orig["num_qubits"]
+
+    # Validate improvements
+    imp = result["improvements"]
+    assert isinstance(imp, dict)
+    assert "depth_reduction" in imp and isinstance(imp["depth_reduction"], int)
+    assert "two_qubit_gate_reduction" in imp and isinstance(imp["two_qubit_gate_reduction"], int)
+    # Verify improvement calculation is correct
+    assert imp["depth_reduction"] == orig["depth"] - opt["depth"]
+    assert imp["two_qubit_gate_reduction"] == orig["two_qubit_gates"] - opt["two_qubit_gates"]
+
+
 def return_2q_count_and_depth(circuit: QuantumCircuit) -> dict[str, Any]:
     circuit_without_swaps = circuit.decompose("swap")
     return {

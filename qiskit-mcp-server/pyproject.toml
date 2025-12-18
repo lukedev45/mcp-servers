@@ -1,12 +1,13 @@
 [project]
 name = "qiskit-mcp-server"
 version = "0.1.0"
-description = "MCP server for Qiskit quantum computing capabilities"
+description = "MCP server for Qiskit quantum computing capabilities with circuit serialization utilities"
 readme = "README.md"
 requires-python = ">=3.10,<3.15"
 dependencies = [
     "fastmcp>=2.8.1",
     "qiskit>=1.3.0",
+    "qiskit-qasm3-import>=0.5.0",
     "pydantic>=2.0.0",
     "python-dotenv>=1.0.0",
     "nest-asyncio>=1.5.0",
@@ -36,7 +37,7 @@ email = "Quantum.Plus.AI@ibm.com"
 [project.license]
 text = "Apache-2.0"
 
-keywords = ["quantum", "qiskit", "mcp", "ai", "quantum-computing", "transpiler"]
+keywords = ["quantum", "qiskit", "mcp", "ai", "quantum-computing", "transpiler", "qpy", "qasm"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
@@ -50,7 +51,6 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Physics",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-
 
 [project.urls]
 Homepage = "https://github.com/Qiskit/mcp-servers"
@@ -80,6 +80,14 @@ test = [
     "pytest-mock>=3.11.0",
     "pytest-cov>=4.1.0",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 
 # Bandit security configuration
 [tool.bandit]

@@ -29,6 +29,7 @@ from typing import Any
 
 from fastmcp import FastMCP
 
+from qiskit_mcp_server.circuit_serialization import CircuitFormat, qasm3_to_qpy, qpy_to_qasm3
 from qiskit_mcp_server.transpiler import (
     analyze_circuit,
     compare_optimization_levels,
@@ -50,24 +51,26 @@ mcp = FastMCP("Qiskit")
 # Tools - Only action-oriented tools, metadata is via resources
 @mcp.tool()
 async def transpile_circuit_tool(
-    circuit_qasm: str,
+    circuit: str,
     optimization_level: int = 2,
     basis_gates: list[str] | str | None = None,
     coupling_map: list[list[int]] | str | None = None,
     initial_layout: list[int] | None = None,
     seed_transpiler: int | None = None,
+    circuit_format: CircuitFormat = "qasm3",
 ) -> dict[str, Any]:
     """Transpile a quantum circuit using Qiskit's preset pass managers.
 
-    Takes an OpenQASM circuit and transpiles it to match target hardware
+    Takes a quantum circuit and transpiles it to match target hardware
     constraints while optimizing for depth and gate count.
 
     IMPORTANT: Optimization level 3 can be very slow for large circuits (100+ qubits
     or 1000+ gates). Consider using level 2 for faster results with good quality.
 
     Args:
-        circuit_qasm: OpenQASM 2.0 or 3.0 string representation of the circuit.
+        circuit: Quantum circuit as QASM3 string, base64-encoded QPY, or QASM2 string.
             Maximum supported: 100 qubits, 10000 gates.
+            For QASM2, set circuit_format="qasm3" (it will auto-detect and parse QASM2).
         optimization_level: Optimization level (0-3):
             - 0: No optimization, just maps to basis gates (fastest)
             - 1: Light optimization (default mapping, simple optimizations)
@@ -85,38 +88,49 @@ async def transpile_circuit_tool(
         initial_layout: Optional initial qubit layout as list of physical qubit indices.
             Length must match the number of qubits in the circuit.
         seed_transpiler: Random seed for reproducibility
+        circuit_format: Format of the input circuit ("qasm3" or "qpy"). Defaults to "qasm3".
+            When "qasm3" is specified, QASM2 is also accepted as a fallback.
 
     Returns:
         Dictionary with original and transpiled circuit info, and optimization metrics
     """
     return await transpile_circuit(
-        circuit_qasm=circuit_qasm,
+        circuit=circuit,
         optimization_level=optimization_level,
         basis_gates=basis_gates,
         coupling_map=coupling_map,
         initial_layout=initial_layout,
         seed_transpiler=seed_transpiler,
+        circuit_format=circuit_format,
     )
 
 
 @mcp.tool()
-async def analyze_circuit_tool(circuit_qasm: str) -> dict[str, Any]:
+async def analyze_circuit_tool(
+    circuit: str,
+    circuit_format: CircuitFormat = "qasm3",
+) -> dict[str, Any]:
     """Analyze a quantum circuit without transpiling it.
 
     Provides detailed information about circuit structure, gate counts,
     and metrics useful for understanding circuit complexity.
 
     Args:
-        circuit_qasm: OpenQASM 2.0 or 3.0 string representation of the circuit
+        circuit: Quantum circuit as QASM3 string, base64-encoded QPY, or QASM2 string.
+        circuit_format: Format of the input circuit ("qasm3" or "qpy"). Defaults to "qasm3".
+            When "qasm3" is specified, QASM2 is also accepted as a fallback.
 
     Returns:
         Dictionary with circuit analysis including gate counts, depth, and categorization
     """
-    return await analyze_circuit(circuit_qasm)
+    return await analyze_circuit(circuit, circuit_format=circuit_format)
 
 
 @mcp.tool()
-async def compare_optimization_levels_tool(circuit_qasm: str) -> dict[str, Any]:
+async def compare_optimization_levels_tool(
+    circuit: str,
+    circuit_format: CircuitFormat = "qasm3",
+) -> dict[str, Any]:
     """Compare transpilation results across all optimization levels (0-3).
 
     Useful for understanding the trade-off between compilation time
@@ -125,12 +139,51 @@ async def compare_optimization_levels_tool(circuit_qasm: str) -> dict[str, Any]:
     WARNING: This runs transpilation 4 times. For large circuits, this can be slow.
 
     Args:
-        circuit_qasm: OpenQASM 2.0 or 3.0 string representation of the circuit
+        circuit: Quantum circuit as QASM3 string, base64-encoded QPY, or QASM2 string.
+        circuit_format: Format of the input circuit ("qasm3" or "qpy"). Defaults to "qasm3".
+            When "qasm3" is specified, QASM2 is also accepted as a fallback.
 
     Returns:
         Dictionary comparing depth, size, and gate counts across all levels
     """
-    return await compare_optimization_levels(circuit_qasm)
+    return await compare_optimization_levels(circuit, circuit_format=circuit_format)
+
+
+@mcp.tool()
+async def convert_qpy_to_qasm3_tool(
+    circuit_qpy: str,
+) -> dict[str, Any]:
+    """Convert a QPY circuit to human-readable QASM3 format.
+
+    Use this tool to view the contents of a QPY circuit output from other tools
+    (like transpile_circuit) in a human-readable OpenQASM 3.0 format.
+
+    Args:
+        circuit_qpy: Base64-encoded QPY circuit string (from transpile_circuit output)
+
+    Returns:
+        Dict with 'status' and 'qasm3' (the human-readable circuit string).
+    """
+    return qpy_to_qasm3(circuit_qpy)
+
+
+@mcp.tool()
+async def convert_qasm3_to_qpy_tool(
+    circuit_qasm: str,
+) -> dict[str, Any]:
+    """Convert a QASM3 (or QASM2) circuit to base64-encoded QPY format.
+
+    Use this tool to convert human-readable QASM circuits to QPY format,
+    which preserves full circuit fidelity (exact parameters, metadata, custom gates).
+    The QPY output can then be used with other tools that accept QPY input.
+
+    Args:
+        circuit_qasm: OpenQASM 3.0 or 2.0 circuit string
+
+    Returns:
+        Dict with 'status' and 'circuit_qpy' (base64-encoded QPY string).
+    """
+    return qasm3_to_qpy(circuit_qasm)
 
 
 # Resources - Static metadata accessible without tool calls

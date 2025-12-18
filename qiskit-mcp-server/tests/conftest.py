@@ -13,6 +13,8 @@
 """Test configuration and fixtures for Qiskit MCP Server tests."""
 
 import pytest
+from qiskit import QuantumCircuit
+from qiskit_mcp_server.circuit_serialization import dump_qpy_circuit
 
 
 @pytest.fixture
@@ -125,3 +127,13 @@ def sample_coupling_map() -> list[list[int]]:
 def sample_basis_gates() -> list[str]:
     """Sample basis gates for IBM backends."""
     return ["id", "rz", "sx", "x", "cx"]
+
+
+@pytest.fixture
+def simple_circuit_qpy() -> str:
+    """A simple 2-qubit circuit in base64-encoded QPY format."""
+    qc = QuantumCircuit(2, 2)
+    qc.h(0)
+    qc.cx(0, 1)
+    qc.measure([0, 1], [0, 1])
+    return dump_qpy_circuit(qc)

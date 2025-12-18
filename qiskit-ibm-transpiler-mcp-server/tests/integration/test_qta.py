@@ -11,6 +11,8 @@
 # that they have been altered from the originals.
 """Integration tests for IBM Qiskit Transpiler MCP Server functions."""
 
+from pathlib import Path
+
 import pytest
 from qiskit_ibm_transpiler_mcp_server.qta import (
     ai_clifford_synthesis,
@@ -20,7 +22,11 @@ from qiskit_ibm_transpiler_mcp_server.qta import (
     ai_routing,
 )
 
-from tests.utils.helpers import calculate_2q_count_and_depth_improvement
+from tests.utils.helpers import validate_synthesis_result
+
+
+# Get the path to the tests directory
+TESTS_DIR = Path(__file__).parent.parent
 
 
 class TestAIRouting:
@@ -32,11 +38,11 @@ class TestAIRouting:
         """
         Successful test AI routing tool with existing backend, quantum circuit and PassManager
         """
-        with open("tests/qasm/correct_qasm_1") as f:
+        with open(TESTS_DIR / "qasm" / "correct_qasm_1") as f:
             qasm_str = f.read()
 
         result = await ai_routing(
-            circuit_qasm=qasm_str,
+            circuit=qasm_str,
             backend_name=backend_name,
         )
         assert result["status"] == "success"
@@ -49,12 +55,12 @@ class TestAIRouting:
         """
         Failed test AI routing tool with existing backend, quantum circuit and PassManager. Here we simulate wrong backend name.
         """
-        with open("tests/qasm/correct_qasm_1") as f:
+        with open(TESTS_DIR / "qasm" / "correct_qasm_1") as f:
             qasm_str = f.read()
         backend_name = "ibm_fake"
 
         result = await ai_routing(
-            circuit_qasm=qasm_str,
+            circuit=qasm_str,
             backend_name=backend_name,
         )
         assert result["status"] == "error"
@@ -66,9 +72,9 @@ class TestAIRouting:
         """
         Failed test AI routing tool with empty backend.
         """
-        with open("tests/qasm/correct_qasm_1") as f:
+        with open(TESTS_DIR / "qasm" / "correct_qasm_1") as f:
             qasm_str = f.read()
-        result = await ai_routing(circuit_qasm=qasm_str, backend_name="")
+        result = await ai_routing(circuit=qasm_str, backend_name="")
         assert result["status"] == "error"
         assert result["message"] == "backend is required and cannot be empty"
 
@@ -78,11 +84,11 @@ class TestAIRouting:
         """
         Failed test AI routing tool with existing backend, quantum circuit and PassManager. Here we simulate wrong input QASM string.
         """
-        with open("tests/qasm/wrong_qasm_1") as f:
+        with open(TESTS_DIR / "qasm" / "wrong_qasm_1") as f:
             qasm_str = f.read()
 
         result = await ai_routing(
-            circuit_qasm=qasm_str,
+            circuit=qasm_str,
             backend_name=backend_name,
         )
         assert result["status"] == "error"
@@ -98,20 +104,10 @@ class TestAICliffordSynthesis:
         Successful test AI Clifford synthesis tool with existing backend, quantum circuit and PassManager.
         """
 
-        with open("tests/qasm/correct_qasm_1") as f:
+        with open(TESTS_DIR / "qasm" / "correct_qasm_1") as f:
             qasm_str = f.read()
-        result = await ai_clifford_synthesis(circuit_qasm=qasm_str, backend_name=backend_name)
-        assert result["status"] == "success"
-
-        improvements = calculate_2q_count_and_depth_improvement(
-            circuit1_qasm=qasm_str, circuit2_qasm=result["optimized_circuit_qasm"]
-        )
-        assert improvements["improvement_2q_gates"] >= 0, (
-            f"Optimization decreased 2q gates: Δ={improvements['improvement_2q_gates']}%"
-        )
-        assert improvements["improvement_2q_depth"] >= 0, (
-            f"Optimization decreased 2q depth: Δ={improvements['improvement_2q_depth']}%"
-        )
+        result = await ai_clifford_synthesis(circuit=qasm_str, backend_name=backend_name)
+        validate_synthesis_result(result)
 
     @pytest.mark.integration
     @pytest.mark.asyncio
@@ -121,10 +117,10 @@ class TestAICliffordSynthesis:
         """
         Failed test AI Clifford synthesis tool with existing backend, quantum circuit and PassManager. Wrong backend name
         """
-        with open("tests/qasm/correct_qasm_1") as f:
+        with open(TESTS_DIR / "qasm" / "correct_qasm_1") as f:
             qasm_str = f.read()
         backend_name = "ibm_fake"
-        result = await ai_clifford_synthesis(circuit_qasm=qasm_str, backend_name=backend_name)
+        result = await ai_clifford_synthesis(circuit=qasm_str, backend_name=backend_name)
         assert result["status"] == "error"
         assert "Failed to find backend ibm_fake" in result["message"]
 
@@ -134,9 +130,9 @@ class TestAICliffordSynthesis:
         """
         Failed test AI Clifford synthesis tool with empty backend.
         """
-        with open("tests/qasm/correct_qasm_1") as f:
+        with open(TESTS_DIR / "qasm" / "correct_qasm_1") as f:
             qasm_str = f.read()
-        result = await ai_clifford_synthesis(circuit_qasm=qasm_str, backend_name="")
+        result = await ai_clifford_synthesis(circuit=qasm_str, backend_name="")
         assert result["status"] == "error"
         assert result["message"] == "backend is required and cannot be empty"
 
@@ -146,10 +142,10 @@ class TestAICliffordSynthesis:
         """
         Failed test AI Clifford synthesis tool with existing backend, quantum circuit and PassManager. Wrong QASM str
         """
-        with open("tests/qasm/wrong_qasm_1") as f:
+        with open(TESTS_DIR / "qasm" / "wrong_qasm_1") as f:
             qasm_str = f.read()
 
-        result = await ai_clifford_synthesis(circuit_qasm=qasm_str, backend_name=backend_name)
+        result = await ai_clifford_synthesis(circuit=qasm_str, backend_name=backend_name)
         assert result["status"] == "error"
 
 
@@ -163,22 +159,10 @@ class TestAILinearFunctionSynthesis:
         Successful test AI Linear Function synthesis tool with existing backend, quantum circuit and PassManager.
         """
 
-        with open("tests/qasm/correct_qasm_1") as f:
+        with open(TESTS_DIR / "qasm" / "correct_qasm_1") as f:
             qasm_str = f.read()
-        result = await ai_linear_function_synthesis(
-            circuit_qasm=qasm_str, backend_name=backend_name
-        )
-        assert result["status"] == "success"
-
-        improvements = calculate_2q_count_and_depth_improvement(
-            circuit1_qasm=qasm_str, circuit2_qasm=result["optimized_circuit_qasm"]
-        )
-        assert improvements["improvement_2q_gates"] >= 0, (
-            f"Optimization decreased 2q gates: Δ={improvements['improvement_2q_gates']}%"
-        )
-        assert improvements["improvement_2q_depth"] >= 0, (
-            f"Optimization decreased 2q depth: Δ={improvements['improvement_2q_depth']}%"
-        )
+        result = await ai_linear_function_synthesis(circuit=qasm_str, backend_name=backend_name)
+        validate_synthesis_result(result)
 
     @pytest.mark.integration
     @pytest.mark.asyncio
@@ -188,12 +172,10 @@ class TestAILinearFunctionSynthesis:
         """
         Failed test AI Linear Function synthesis tool with existing backend, quantum circuit and PassManager. Wrong backend name
         """
-        with open("tests/qasm/correct_qasm_1") as f:
+        with open(TESTS_DIR / "qasm" / "correct_qasm_1") as f:
             qasm_str = f.read()
         backend_name = "ibm_fake"
-        result = await ai_linear_function_synthesis(
-            circuit_qasm=qasm_str, backend_name=backend_name
-        )
+        result = await ai_linear_function_synthesis(circuit=qasm_str, backend_name=backend_name)
         assert result["status"] == "error"
         assert "Failed to find backend ibm_fake" in result["message"]
 
@@ -203,9 +185,9 @@ class TestAILinearFunctionSynthesis:
         """
         Failed test AI Linear Function synthesis tool with empty backend.
         """
-        with open("tests/qasm/correct_qasm_1") as f:
+        with open(TESTS_DIR / "qasm" / "correct_qasm_1") as f:
             qasm_str = f.read()
-        result = await ai_linear_function_synthesis(circuit_qasm=qasm_str, backend_name="")
+        result = await ai_linear_function_synthesis(circuit=qasm_str, backend_name="")
         assert result["status"] == "error"
         assert result["message"] == "backend is required and cannot be empty"
 
@@ -215,12 +197,10 @@ class TestAILinearFunctionSynthesis:
         """
         Failed test AI Linear Function synthesis tool with existing backend, quantum circuit and PassManager. Wrong QASM str
         """
-        with open("tests/qasm/wrong_qasm_1") as f:
+        with open(TESTS_DIR / "qasm" / "wrong_qasm_1") as f:
             qasm_str = f.read()
 
-        result = await ai_linear_function_synthesis(
-            circuit_qasm=qasm_str, backend_name=backend_name
-        )
+        result = await ai_linear_function_synthesis(circuit=qasm_str, backend_name=backend_name)
         assert result["status"] == "error"
 
 
@@ -234,20 +214,11 @@ class TestAIPermutationSynthesis:
         Successful test AI Permutation synthesis tool with existing backend, quantum circuit and PassManager.
         """
 
-        with open("tests/qasm/correct_qasm_1") as f:
+        with open(TESTS_DIR / "qasm" / "correct_qasm_1") as f:
             qasm_str = f.read()
 
-        result = await ai_permutation_synthesis(circuit_qasm=qasm_str, backend_name=backend_name)
-        assert result["status"] == "success"
-        improvements = calculate_2q_count_and_depth_improvement(
-            circuit1_qasm=qasm_str, circuit2_qasm=result["optimized_circuit_qasm"]
-        )
-        assert improvements["improvement_2q_gates"] >= 0, (
-            f"Optimization decreased 2q gates: Δ={improvements['improvement_2q_gates']}%"
-        )
-        assert improvements["improvement_2q_depth"] >= 0, (
-            f"Optimization decreased 2q depth: Δ={improvements['improvement_2q_depth']}%"
-        )
+        result = await ai_permutation_synthesis(circuit=qasm_str, backend_name=backend_name)
+        validate_synthesis_result(result)
 
     @pytest.mark.integration
     @pytest.mark.asyncio
@@ -257,10 +228,10 @@ class TestAIPermutationSynthesis:
         """
         Failed test AI Permutation synthesis tool with existing backend, quantum circuit and PassManager. Wrong backend name
         """
-        with open("tests/qasm/correct_qasm_1") as f:
+        with open(TESTS_DIR / "qasm" / "correct_qasm_1") as f:
             qasm_str = f.read()
         backend_name = "ibm_fake"
-        result = await ai_permutation_synthesis(circuit_qasm=qasm_str, backend_name=backend_name)
+        result = await ai_permutation_synthesis(circuit=qasm_str, backend_name=backend_name)
         assert result["status"] == "error"
         assert "Failed to find backend ibm_fake" in result["message"]
 
@@ -270,9 +241,9 @@ class TestAIPermutationSynthesis:
         """
         Failed test AI Permutation synthesis tool with empty backend.
         """
-        with open("tests/qasm/correct_qasm_1") as f:
+        with open(TESTS_DIR / "qasm" / "correct_qasm_1") as f:
             qasm_str = f.read()
-        result = await ai_permutation_synthesis(circuit_qasm=qasm_str, backend_name="")
+        result = await ai_permutation_synthesis(circuit=qasm_str, backend_name="")
         assert result["status"] == "error"
         assert result["message"] == "backend is required and cannot be empty"
 
@@ -282,10 +253,10 @@ class TestAIPermutationSynthesis:
         """
         Failed test AI Permutation synthesis tool with existing backend, quantum circuit and PassManager. Wrong QASM str
         """
-        with open("tests/qasm/wrong_qasm_1") as f:
+        with open(TESTS_DIR / "qasm" / "wrong_qasm_1") as f:
             qasm_str = f.read()
 
-        result = await ai_permutation_synthesis(circuit_qasm=qasm_str, backend_name=backend_name)
+        result = await ai_permutation_synthesis(circuit=qasm_str, backend_name=backend_name)
         assert result["status"] == "error"
 
 
@@ -299,20 +270,11 @@ class TestAIPauliNetworkSynthesis:
         Successful test AI Pauli Network synthesis tool with existing backend, quantum circuit and PassManager.
         """
 
-        with open("tests/qasm/correct_qasm_1") as f:
+        with open(TESTS_DIR / "qasm" / "correct_qasm_1") as f:
             qasm_str = f.read()
 
-        result = await ai_pauli_network_synthesis(circuit_qasm=qasm_str, backend_name=backend_name)
-        assert result["status"] == "success"
-        improvements = calculate_2q_count_and_depth_improvement(
-            circuit1_qasm=qasm_str, circuit2_qasm=result["optimized_circuit_qasm"]
-        )
-        assert improvements["improvement_2q_gates"] >= 0, (
-            f"Optimization decreased 2q gates: Δ={improvements['improvement_2q_gates']}%"
-        )
-        assert improvements["improvement_2q_depth"] >= 0, (
-            f"Optimization decreased 2q depth: Δ={improvements['improvement_2q_depth']}%"
-        )
+        result = await ai_pauli_network_synthesis(circuit=qasm_str, backend_name=backend_name)
+        validate_synthesis_result(result)
 
     @pytest.mark.integration
     @pytest.mark.asyncio
@@ -322,10 +284,10 @@ class TestAIPauliNetworkSynthesis:
         """
         Failed test AI Pauli Network synthesis tool with existing backend, quantum circuit and PassManager. Wrong backend name
         """
-        with open("tests/qasm/correct_qasm_1") as f:
+        with open(TESTS_DIR / "qasm" / "correct_qasm_1") as f:
             qasm_str = f.read()
         backend_name = "ibm_fake"
-        result = await ai_pauli_network_synthesis(circuit_qasm=qasm_str, backend_name=backend_name)
+        result = await ai_pauli_network_synthesis(circuit=qasm_str, backend_name=backend_name)
         assert result["status"] == "error"
         assert "Failed to find backend ibm_fake" in result["message"]
 
@@ -335,9 +297,9 @@ class TestAIPauliNetworkSynthesis:
         """
         Failed test AI Pauli Network synthesis tool with empty backend.
         """
-        with open("tests/qasm/correct_qasm_1") as f:
+        with open(TESTS_DIR / "qasm" / "correct_qasm_1") as f:
             qasm_str = f.read()
-        result = await ai_pauli_network_synthesis(circuit_qasm=qasm_str, backend_name="")
+        result = await ai_pauli_network_synthesis(circuit=qasm_str, backend_name="")
         assert result["status"] == "error"
         assert result["message"] == "backend is required and cannot be empty"
 
@@ -347,8 +309,8 @@ class TestAIPauliNetworkSynthesis:
         """
         Failed test AI Pauli Network synthesis tool with existing backend, quantum circuit and PassManager. Wrong QASM str
         """
-        with open("tests/qasm/wrong_qasm_1") as f:
+        with open(TESTS_DIR / "qasm" / "wrong_qasm_1") as f:
             qasm_str = f.read()
 
-        result = await ai_pauli_network_synthesis(circuit_qasm=qasm_str, backend_name=backend_name)
+        result = await ai_pauli_network_synthesis(circuit=qasm_str, backend_name=backend_name)
         assert result["status"] == "error"

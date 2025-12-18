@@ -13,7 +13,7 @@
 """
 LangChain Agent Example with Qiskit IBM Runtime MCP Server
 
-This example demonstrates how to create an AI agent using LangGraph that
+This example demonstrates how to create an AI agent using LangChain that
 connects to the qiskit-ibm-runtime-mcp-server via the Model Context Protocol (MCP).
 
 The agent can interact with IBM Quantum services through the MCP server, which
@@ -30,7 +30,7 @@ Supported LLM Providers:
     - OpenAI-completions (/completions, limited agent support): pip install langchain-openai
 
 Requirements:
-    pip install langgraph langchain-mcp-adapters python-dotenv
+    pip install langchain langchain-mcp-adapters python-dotenv
     pip install <provider-package>  # See above for your chosen provider
 
 Usage:
@@ -69,17 +69,11 @@ import argparse
 import asyncio
 import os
 
-import warnings
-
 from dotenv import load_dotenv
+from langchain.agents import create_agent
 from langchain_core.language_models.chat_models import BaseChatModel
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_mcp_adapters.tools import load_mcp_tools
-
-# Suppress deprecation warning for create_react_agent (will be moved in langgraph V2.0)
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", category=DeprecationWarning)
-    from langgraph.prebuilt import create_react_agent
 
 # Load environment variables
 load_dotenv()
@@ -266,7 +260,7 @@ async def create_quantum_agent_with_session(
     session, provider: str = "openai", model: str | None = None
 ):
     """
-    Create a LangGraph agent using an existing MCP session.
+    Create a LangChain agent using an existing MCP session.
 
     This uses a persistent session to avoid spawning a new server process
     for each tool call, significantly improving performance.
@@ -277,7 +271,7 @@ async def create_quantum_agent_with_session(
         model: Optional model name override.
 
     Returns:
-        Configured LangGraph agent.
+        Configured LangChain agent.
     """
     if provider == "openai-completions":
         print(
@@ -293,8 +287,8 @@ async def create_quantum_agent_with_session(
     # Get the LLM for the specified provider
     llm = get_llm(provider, model)
 
-    # Create a ReAct agent using LangGraph
-    agent = create_react_agent(llm, tools, prompt=SYSTEM_PROMPT)
+    # Create an agent using LangChain's create_agent
+    agent = create_agent(llm, tools, system_prompt=SYSTEM_PROMPT)
 
     return agent
 
@@ -304,7 +298,7 @@ async def run_agent_query(agent, query: str) -> str:
     Run a query through the agent.
 
     Args:
-        agent: The configured LangGraph agent.
+        agent: The configured LangChain agent.
         query: The user's query.
 
     Returns:
@@ -325,7 +319,7 @@ async def interactive_session(provider: str, model: str | None):
     if not check_api_key(provider):
         return
 
-    print("Quantum Computing Agent with LangGraph + MCP")
+    print("Quantum Computing Agent with LangChain + MCP")
     print("=" * 45)
     print(f"Provider: {provider}" + (f" (model: {model})" if model else ""))
     print("This agent connects to the qiskit-ibm-runtime-mcp-server")
@@ -398,7 +392,7 @@ async def single_query_example(provider: str, model: str | None):
 def main():
     """Entry point for the example."""
     parser = argparse.ArgumentParser(
-        description="LangGraph Agent for IBM Quantum via MCP",
+        description="LangChain Agent for IBM Quantum via MCP",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:

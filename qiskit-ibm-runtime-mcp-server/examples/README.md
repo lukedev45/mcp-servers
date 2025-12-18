@@ -83,7 +83,7 @@ pip install qiskit-ibm-runtime-mcp-server
 
 ```bash
 # Core dependencies
-pip install langgraph langchain-mcp-adapters python-dotenv
+pip install langchain langchain-mcp-adapters python-dotenv
 
 # Install ONE of the following based on your preferred LLM provider:
 pip install langchain-openai       # For OpenAI, OpenAI-compatible, OpenAI-completions
@@ -267,10 +267,10 @@ You can modify the system prompt or use a different LLM by creating your own age
 ```python
 import asyncio
 import os
+from langchain.agents import create_agent
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_mcp_adapters.tools import load_mcp_tools
 from langchain_openai import ChatOpenAI
-from langgraph.prebuilt import create_react_agent
 
 async def create_custom_agent():
     # Configure MCP client
@@ -294,7 +294,7 @@ async def create_custom_agent():
         system_prompt = "You are a quantum computing expert assistant..."
 
         llm = ChatOpenAI(model="gpt-4o", temperature=0)
-        agent = create_react_agent(llm, tools, prompt=system_prompt)
+        agent = create_agent(llm, tools, system_prompt=system_prompt)
 
         # Use the agent within the session context
         # ... your agent logic here ...

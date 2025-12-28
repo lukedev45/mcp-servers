@@ -220,17 +220,27 @@ async def start_training(
                 "message": f"Environment '{env_id}' not found. Use list_environments to see available.",
             }
 
-        # Set up TensorBoard path
-        tb_path = _ensure_tensorboard_dir(tensorboard_experiment)
-
-        # Create training session
+        # Create training session first to get session_id
         session_id = state.create_training_session(
             env_id=env_id,
             algorithm=algorithm,
             policy=policy,
             total_iterations=num_iterations,
-            tensorboard_path=tb_path,
+            tensorboard_path=None,  # Will be set below
         )
+
+        # Auto-generate TensorBoard experiment name if not provided
+        tb_experiment = tensorboard_experiment
+        if tb_experiment is None:
+            tb_experiment = session_id  # Use session_id as experiment name
+
+        # Set up TensorBoard path
+        tb_path = _ensure_tensorboard_dir(tb_experiment)
+
+        # Update session with TensorBoard path
+        session = state.get_training_session(session_id)
+        if session:
+            session.tensorboard_path = tb_path
 
         if background:
             # Run training in background thread

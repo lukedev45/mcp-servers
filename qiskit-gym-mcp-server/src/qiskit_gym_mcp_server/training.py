@@ -146,7 +146,7 @@ def _run_training_in_background(
 
         # Register as a model
         model_id = state.register_model(
-            model_name=f"trained_{env_type}_{session_id}",
+            model_name=f"{env_type}_{session_id}",
             env_type=env_type,
             coupling_map_edges=env_coupling_map_edges,
             num_qubits=env_num_qubits,
@@ -232,7 +232,8 @@ async def start_training(
         # Auto-generate TensorBoard experiment name if not provided
         tb_experiment = tensorboard_experiment
         if tb_experiment is None:
-            tb_experiment = session_id  # Use session_id as experiment name
+            # Include env_type for easier identification: e.g., "linear_function_train_0001_abc123"
+            tb_experiment = f"{env.env_type}_{session_id}"
 
         # Set up TensorBoard path
         tb_path = _ensure_tensorboard_dir(tb_experiment)
@@ -306,7 +307,7 @@ async def start_training(
 
             # Register as a model
             model_id = state.register_model(
-                model_name=f"trained_{env.env_type}_{session_id}",
+                model_name=f"{env.env_type}_{session_id}",
                 env_type=env.env_type,
                 coupling_map_edges=env.coupling_map_edges,
                 num_qubits=env.num_qubits,

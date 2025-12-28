@@ -864,7 +864,7 @@ async def run_sampler(
         backend, backend_error = _get_sampler_backend(service, backend_name)
         if backend_error:
             return {"status": "error", "message": backend_error}
-        assert backend is not None  # Type narrowing: backend_error is None means backend is valid
+        assert backend is not None  # Type narrowing for mypy  # nosec B101
 
         # Validate shots
         if shots < 1:
@@ -990,8 +990,7 @@ def get_ghz_state_circuit(num_qubits: int = 3) -> dict[str, Any]:
 
     # Add CNOT cascade
     lines.extend(
-        f"cx q[{i}], q[{i + 1}];  // Entangle qubit {i} with {i + 1}"
-        for i in range(num_qubits - 1)
+        f"cx q[{i}], q[{i + 1}];  // Entangle qubit {i} with {i + 1}" for i in range(num_qubits - 1)
     )
 
     lines.extend(["", "c = measure q;", ""])

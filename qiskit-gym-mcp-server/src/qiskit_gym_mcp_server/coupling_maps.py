@@ -195,6 +195,10 @@ def _generate_heavy_hex_edges(num_qubits: int, bidirectional: bool = True) -> li
     # Start with grid edges
     edges = _generate_grid_edges(rows, cols, bidirectional=False)
 
+    # Filter edges to only include qubits within num_qubits range
+    # (grid approximation may create more nodes than num_qubits)
+    edges = [e for e in edges if e[0] < num_qubits and e[1] < num_qubits]
+
     # Make bidirectional if requested
     if bidirectional:
         reverse_edges = [[e[1], e[0]] for e in edges]

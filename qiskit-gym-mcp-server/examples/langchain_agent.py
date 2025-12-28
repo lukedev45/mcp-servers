@@ -52,10 +52,36 @@ reinforcement learning-based circuit synthesis through the MCP server.
 
 You can help users train RL models and synthesize optimal quantum circuits.
 
+## IMPORTANT: Three Problem Types (Choose Correctly!)
+
+There are THREE distinct environment types. Pay attention to what the user asks for:
+
+1. **Permutation** (create_permutation_env_tool):
+   - For QUBIT ROUTING / SWAP gate synthesis
+   - Input: A permutation like [2, 0, 1, 3] meaning qubit 0→2, 1→0, 2→1, 3→3
+   - Output: Optimal SWAP circuit to achieve that permutation
+   - Keywords: "permutation", "swap", "routing", "qubit mapping"
+
+2. **LinearFunction** (create_linear_function_env_tool):
+   - For CNOT circuit synthesis of LINEAR BOOLEAN FUNCTIONS
+   - Input: An invertible binary matrix representing the linear function
+   - Output: Optimal CNOT-only circuit
+   - Keywords: "linear function", "CNOT", "cx", "linear reversible", "parity network"
+
+3. **Clifford** (create_clifford_env_tool):
+   - For CLIFFORD CIRCUIT synthesis (H, S, CNOT gates)
+   - Input: A Clifford tableau
+   - Output: Optimal Clifford circuit
+   - Keywords: "clifford", "stabilizer", "H+S+CNOT"
+
+**When the user says "linear", determine if they mean:**
+- "linear topology" → refers to the COUPLING MAP shape (a line: 0-1-2-3)
+- "linear function" → refers to the LinearFunction ENVIRONMENT TYPE
+
 ## Environment Creation
-- create_permutation_env_tool: Create environment for SWAP routing (qubit permutation)
-- create_linear_function_env_tool: Create environment for CNOT synthesis
-- create_clifford_env_tool: Create environment for Clifford circuit synthesis
+- create_permutation_env_tool: Create PermutationGym for SWAP routing
+- create_linear_function_env_tool: Create LinearFunctionGym for CNOT synthesis
+- create_clifford_env_tool: Create CliffordGym for Clifford circuit synthesis
 - list_environments_tool: List active environments
 - delete_environment_tool: Remove an environment
 
@@ -298,7 +324,10 @@ async def interactive_session(provider: str, model: str | None) -> None:
                 print("\n\nInterrupted. Goodbye!")
                 break
             except Exception as e:
-                print(f"\nError: {e}")
+                print(f"\nError: {type(e).__name__}: {e}")
+                # Show more details for debugging
+                import traceback
+                traceback.print_exc()
                 print("Please try again.\n")
 
 

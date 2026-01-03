@@ -19,6 +19,7 @@ from qiskit_gym_mcp_server.training import (
     batch_train_environments,
     get_available_algorithms,
     get_available_policies,
+    get_training_metrics,
     get_training_status,
     list_training_sessions,
     start_training,
@@ -349,3 +350,170 @@ class TestBackgroundTraining:
         assert wait_result["status"] == "timeout"
         assert wait_result["session_id"] == session_id
         assert "elapsed_seconds" in wait_result
+
+
+class TestTrainingMetrics:
+    """Tests for training metrics retrieval from TensorBoard."""
+
+    @pytest.mark.asyncio
+    async def test_get_training_metrics_session_not_found(self):
+        """Test error when session not found."""
+        result = await get_training_metrics("nonexistent_session")
+        assert result["status"] == "error"
+        assert "not found" in result["message"]
+
+    @pytest.mark.asyncio
+    async def test_get_training_metrics_no_tensorboard_path(
+        self,
+        mock_permutation_gym,
+        mock_rls_synthesis,
+        mock_ppo_config,
+        mock_basic_policy_config,
+        mocker,
+    ):
+        """Test error when session has no TensorBoard path."""
+        # Create environment and start training
+        env_result = await create_permutation_environment(preset="linear_5")
+        env_id = env_result["env_id"]
+
+        train_result = await start_training(
+            env_id=env_id,
+            num_iterations=5,
+        )
+        session_id = train_result["session_id"]
+
+        # Clear the tensorboard_path to simulate missing logs
+        from qiskit_gym_mcp_server.state import GymStateProvider
+
+        state = GymStateProvider()
+        session = state.get_training_session(session_id)
+        session.tensorboard_path = None
+
+        result = await get_training_metrics(session_id)
+        assert result["status"] == "error"
+        assert "No TensorBoard logs found" in result["message"]
+
+    @pytest.mark.asyncio
+    async def test_get_training_metrics_success(
+        self,
+        mock_permutation_gym,
+        mock_rls_synthesis,
+        mock_ppo_config,
+        mock_basic_policy_config,
+        mocker,
+    ):
+        """Test successful metrics retrieval."""
+        # Create environment and start training
+        env_result = await create_permutation_environment(preset="linear_5")
+        env_id = env_result["env_id"]
+
+        train_result = await start_training(
+            env_id=env_id,
+            num_iterations=5,
+        )
+        session_id = train_result["session_id"]
+
+        # Mock the TensorBoard metrics reader
+        mock_metrics = {
+            "difficulty": [
+                {"step": 0, "value": 1.0},
+                {"step": 1, "value": 1.0},
+                {"step": 2, "value": 2.0},
+            ],
+            "success": [
+                {"step": 0, "value": 0.5},
+                {"step": 1, "value": 0.8},
+                {"step": 2, "value": 1.0},
+            ],
+            "reward": [
+                {"step": 0, "value": 0.3},
+                {"step": 1, "value": 0.7},
+                {"step": 2, "value": 0.95},
+            ],
+        }
+        mocker.patch(
+            "qiskit_gym_mcp_server.training._read_tensorboard_metrics",
+            return_value=mock_metrics,
+        )
+
+        result = await get_training_metrics(session_id)
+
+        assert result["status"] == "success"
+        assert result["session_id"] == session_id
+        assert "tensorboard_path" in result
+        assert result["metrics"] == mock_metrics
+        assert result["final_difficulty"] == 2.0
+        assert result["final_success"] == 1.0
+        assert result["final_success_percent"] == "100%"
+        assert result["final_reward"] == 0.95
+
+    @pytest.mark.asyncio
+    async def test_get_training_metrics_tensorboard_error(
+        self,
+        mock_permutation_gym,
+        mock_rls_synthesis,
+        mock_ppo_config,
+        mock_basic_policy_config,
+        mocker,
+    ):
+        """Test error handling when TensorBoard read fails."""
+        # Create environment and start training
+        env_result = await create_permutation_environment(preset="linear_5")
+        env_id = env_result["env_id"]
+
+        train_result = await start_training(
+            env_id=env_id,
+            num_iterations=5,
+        )
+        session_id = train_result["session_id"]
+
+        # Mock TensorBoard reader to return an error
+        mocker.patch(
+            "qiskit_gym_mcp_server.training._read_tensorboard_metrics",
+            return_value={"error": "File not found"},
+        )
+
+        result = await get_training_metrics(session_id)
+
+        assert result["status"] == "error"
+        assert "Failed to read TensorBoard logs" in result["message"]
+        assert "File not found" in result["message"]
+
+    @pytest.mark.asyncio
+    async def test_get_training_metrics_partial_data(
+        self,
+        mock_permutation_gym,
+        mock_rls_synthesis,
+        mock_ppo_config,
+        mock_basic_policy_config,
+        mocker,
+    ):
+        """Test metrics retrieval with only some metrics available."""
+        # Create environment and start training
+        env_result = await create_permutation_environment(preset="linear_5")
+        env_id = env_result["env_id"]
+
+        train_result = await start_training(
+            env_id=env_id,
+            num_iterations=5,
+        )
+        session_id = train_result["session_id"]
+
+        # Mock with only difficulty data (no success or reward)
+        mock_metrics = {
+            "difficulty": [
+                {"step": 0, "value": 1.0},
+                {"step": 1, "value": 2.0},
+            ],
+        }
+        mocker.patch(
+            "qiskit_gym_mcp_server.training._read_tensorboard_metrics",
+            return_value=mock_metrics,
+        )
+
+        result = await get_training_metrics(session_id)
+
+        assert result["status"] == "success"
+        assert result["final_difficulty"] == 2.0
+        assert "final_success" not in result
+        assert "final_reward" not in result

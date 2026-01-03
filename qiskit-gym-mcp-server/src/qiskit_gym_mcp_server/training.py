@@ -389,7 +389,9 @@ async def get_training_status(session_id: str) -> dict[str, Any]:
         session_id: Training session ID
 
     Returns:
-        Dict with session status, progress, and metrics
+        Dict with session status, progress, and metrics.
+        If training is in progress or completed and TensorBoard logs exist,
+        includes current_difficulty, current_success, and current_reward.
     """
     state = GymStateProvider()
     session = state.get_training_session(session_id)
@@ -420,6 +422,18 @@ async def get_training_status(session_id: str) -> dict[str, Any]:
     # Include model_id if training completed
     if session.status == "completed" and hasattr(session, "model_id") and session.model_id:
         result["model_id"] = session.model_id
+
+    # Include live metrics from TensorBoard if available
+    if session.tensorboard_path:
+        tb_metrics = _read_tensorboard_metrics(session.tensorboard_path)
+        if "error" not in tb_metrics:
+            if "difficulty" in tb_metrics and tb_metrics["difficulty"]:
+                result["current_difficulty"] = tb_metrics["difficulty"][-1]["value"]
+            if "success" in tb_metrics and tb_metrics["success"]:
+                result["current_success"] = tb_metrics["success"][-1]["value"]
+                result["current_success_percent"] = f"{tb_metrics['success'][-1]['value']:.0%}"
+            if "reward" in tb_metrics and tb_metrics["reward"]:
+                result["current_reward"] = tb_metrics["reward"][-1]["value"]
 
     return result
 

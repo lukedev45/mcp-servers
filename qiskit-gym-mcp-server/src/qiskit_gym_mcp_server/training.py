@@ -220,6 +220,11 @@ async def start_training(
         Dict with session_id. If background=False, also includes final status
         and training metrics. If background=True, returns immediately with
         session_id for polling.
+
+    TODO: Add training curriculum parameters (currently using qiskit-gym defaults):
+        - initial_difficulty: Starting difficulty level (default: 1)
+        - depth_slope: How fast difficulty increases (default: 2)
+        - max_depth: Maximum circuit depth (default: 128)
     """
     try:
         # Validate iteration count

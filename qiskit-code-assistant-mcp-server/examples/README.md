@@ -80,7 +80,7 @@ pip install qiskit-code-assistant-mcp-server
 # Core dependencies
 pip install langchain langchain-mcp-adapters python-dotenv
 
-# Install ONE of the following based on your preferred LLM provider:
+# Install at least ONE of the following based on your preferred LLM provider(s):
 pip install langchain-openai       # For OpenAI
 pip install langchain-anthropic    # For Anthropic Claude
 pip install langchain-google-genai # For Google Gemini

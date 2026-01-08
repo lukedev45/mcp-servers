@@ -264,7 +264,7 @@ AI Assistant → MCP Client → transpile_circuit_tool
 
 ### Qiskit Code Assistant Server
 ```
-AI Assistant → MCP Client → qca_get_completion tool
+AI Assistant → MCP Client → get_completion_tool
                                   ↓
                             qca.py (async functions)
                                   ↓

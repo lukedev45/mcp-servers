@@ -49,7 +49,7 @@ async def list_models() -> dict[str, Any]:
             logger.info(f"Retrieved {len(models)} models from Qiskit Code Assistant")
             return {"status": "success", "models": models}
     except Exception as e:
-        logger.error(f"Exception in qca_list_models: {e!s}")
+        logger.error(f"Exception in list_models: {e!s}")
         return {"status": "error", "message": f"Failed to list models: {e!s}"}
 
 

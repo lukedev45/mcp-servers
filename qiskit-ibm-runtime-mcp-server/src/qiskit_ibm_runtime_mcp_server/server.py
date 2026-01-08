@@ -107,6 +107,8 @@ async def get_backend_properties_tool(backend_name: str) -> dict[str, Any]:
     Note:
         For time-varying calibration data (T1, T2, gate errors, faulty qubits),
         use get_backend_calibration_tool instead.
+        For detailed connectivity analysis (adjacency list, bidirectional check)
+        or fake backend support, use get_coupling_map_tool instead.
     """
     return await get_backend_properties(backend_name)
 

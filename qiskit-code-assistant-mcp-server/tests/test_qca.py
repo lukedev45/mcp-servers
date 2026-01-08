@@ -125,9 +125,8 @@ class TestGetCompletion:
 
         assert result["status"] == "success"
         assert "completion_id" in result
-        assert "choices" in result
-        assert len(result["choices"]) == 1
-        assert "quantum circuit" in result["choices"][0]["text"].lower()
+        assert "code" in result
+        assert "quantum circuit" in result["code"].lower()
 
     @pytest.mark.asyncio
     async def test_get_completion_empty_prompt(self, mock_env_vars):
@@ -177,7 +176,7 @@ class TestGetRAGCompletion:
 
         assert result["status"] == "success"
         assert "completion_id" in result
-        assert "choices" in result
+        assert "answer" in result
 
 
 class TestAcceptModelDisclaimer:

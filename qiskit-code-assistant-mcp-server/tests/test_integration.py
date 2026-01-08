@@ -110,7 +110,7 @@ class TestToolHandlers:
 
         assert result["status"] == "success"
         assert "completion_id" in result
-        assert "choices" in result
+        assert "code" in result
 
     @pytest.mark.asyncio
     async def test_rag_completion_tool(self, mock_env_vars, mock_http_responses):
@@ -121,7 +121,7 @@ class TestToolHandlers:
 
         assert result["status"] == "success"
         assert "completion_id" in result
-        assert "choices" in result
+        assert "answer" in result
 
     @pytest.mark.asyncio
     async def test_accept_disclaimer_tool(self, mock_env_vars, mock_http_responses):

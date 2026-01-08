@@ -104,6 +104,7 @@ Each MCP server follows this standard structure:
 │   └── langchain_agent.py       # Command-line agent with multiple LLM provider support
 ├── pyproject.toml               # Project metadata & dependencies
 ├── pytest.ini                   # pytest configuration (optional)
+├── LICENSE                      # Apache 2.0 license (copy from root)
 ├── README.md                    # Server-specific documentation
 ├── .env.example                 # Environment variable template (optional)
 └── run_tests.sh                 # Test execution script
@@ -840,6 +841,7 @@ qiskit-mcp-servers/
 │   │   ├── langchain_agent.ipynb
 │   │   └── langchain_agent.py
 │   ├── pyproject.toml
+│   ├── LICENSE
 │   ├── README.md
 │   └── run_tests.sh
 ├── qiskit-code-assistant-mcp-server/
@@ -858,6 +860,7 @@ qiskit-mcp-servers/
 │   │   └── langchain_agent.py
 │   ├── pyproject.toml
 │   ├── pytest.ini
+│   ├── LICENSE
 │   ├── README.md
 │   └── run_tests.sh
 ├── qiskit-ibm-runtime-mcp-server/
@@ -874,6 +877,7 @@ qiskit-mcp-servers/
 │   │   └── langchain_agent.py
 │   ├── pyproject.toml
 │   ├── pytest.ini
+│   ├── LICENSE
 │   ├── README.md
 │   └── run_tests.sh
 ├── qiskit-ibm-transpiler-mcp-server/
@@ -894,6 +898,7 @@ qiskit-mcp-servers/
 │   │   └── langchain_agent.py
 │   ├── pyproject.toml
 │   ├── pytest.ini
+│   ├── LICENSE
 │   ├── README.md
 │   └── run_tests.sh
 ├── src/

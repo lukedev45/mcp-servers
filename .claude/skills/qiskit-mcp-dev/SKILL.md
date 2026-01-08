@@ -158,6 +158,7 @@ qiskit-<name>-mcp-server/
 ├── pyproject.toml
 ├── pytest.ini           # (optional) pytest configuration
 ├── .env.example         # (optional) Environment variable template
+├── LICENSE              # Apache 2.0 license (copy from root)
 ├── README.md
 └── run_tests.sh
 ```

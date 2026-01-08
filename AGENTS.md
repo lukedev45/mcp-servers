@@ -396,6 +396,34 @@ AI Assistant → MCP Client → ai_routing_tool / ai_*_synthesis_tool
    - Type check with `mypy src/`
    - All checks must pass before committing
 
+### Security Best Practices
+
+When developing MCP servers that handle quantum computing resources:
+
+1. **Credential Management**:
+   - Never hardcode API tokens or credentials in source code
+   - Use environment variables (`QISKIT_IBM_TOKEN`) or secure credential files
+   - Support fallback to saved credentials (`~/.qiskit/qiskit-ibm.json`)
+   - Never log or expose credentials in error messages or debug output
+
+2. **Input Validation**:
+   - Validate all circuit inputs before processing (size, format, qubit count)
+   - Enforce configurable limits (`QISKIT_MCP_MAX_QUBITS`, `QISKIT_MCP_MAX_GATES`)
+   - Sanitize QASM strings before parsing
+   - Reject malformed or suspicious inputs early
+
+3. **API Security**:
+   - Use HTTPS for all external API calls
+   - Implement proper error handling without leaking sensitive information
+   - Handle authentication failures gracefully
+   - Rate limit awareness for IBM Quantum API calls
+
+4. **Testing Security**:
+   - Never use real credentials in unit tests
+   - Mock all external service calls
+   - Test error paths and edge cases
+   - Verify credential handling doesn't expose sensitive data
+
 ### Adding New Features
 
 1. **Adding a New Tool**:

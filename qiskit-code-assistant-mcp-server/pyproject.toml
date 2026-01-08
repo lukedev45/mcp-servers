@@ -1,6 +1,6 @@
 [project]
 name = "qiskit-code-assistant-mcp-server"
-version = "0.1.1"
+version = "0.2.0"
 description = "MCP server for the Qiskit Code Assistant"
 readme = "README.md"
 requires-python = ">=3.10,<3.15"
@@ -80,6 +80,12 @@ test = [
     "pytest-cov>=4.1.0",
     "httpx>=0.25.0",
     "respx>=0.20.0",
+]
+examples = [
+    "langchain>=1.2.0",
+    "langchain-mcp-adapters>=0.1.0",
+    "langchain-anthropic>=1.0.0",
+    "python-dotenv>=1.0.0",
 ]
 
 # Bandit security configuration

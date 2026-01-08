@@ -38,6 +38,7 @@ When helping with MCP server development in this repository:
 Tools go in `server.py` and delegate to async functions in the core module:
 
 ```python
+# Example: from qiskit_<name>_mcp_server.<core> import my_function
 from qiskit_ibm_runtime_mcp_server.ibm_runtime import my_function
 
 @mcp.tool()
@@ -90,20 +91,20 @@ import pytest
 from unittest.mock import Mock, patch
 
 @pytest.mark.asyncio
-async def test_my_tool(mock_runtime_service):
+async def test_my_tool(mock_service):
     """Test description."""
     with patch(
-        "qiskit_ibm_runtime_mcp_server.ibm_runtime.QiskitRuntimeService",
-        return_value=mock_runtime_service,
+        "qiskit_<name>_mcp_server.<core>.ExternalService",
+        return_value=mock_service,
     ):
         result = await my_function()
         assert result["status"] == "success"
 ```
 
-Common fixtures in `conftest.py`:
-- `mock_runtime_service` - Mocked QiskitRuntimeService with backends/jobs
-- `mock_env_vars` - Sets `QISKIT_IBM_TOKEN` for tests
-- `reset_service` - Resets global service state (autouse)
+Common fixture patterns in `conftest.py` (names vary by server):
+- `mock_*_service` - Mocked external service (e.g., `mock_runtime_service`, `mock_http_client`)
+- `mock_env_vars` - Sets environment variables like `QISKIT_IBM_TOKEN`
+- `reset_*` - Resets global state between tests (often `autouse=True`)
 
 ## Code Quality
 
@@ -120,20 +121,24 @@ uv run pytest                      # Test
 
 When creating a new server `qiskit-<name>-mcp-server`:
 
-1. **Create server directory** with standard structure
+1. **Create server directory** with standard structure (see below)
 2. **Add to workspace** in root `pyproject.toml`:
    ```toml
    [tool.uv.workspace]
    members = [..., "qiskit-<name>-mcp-server"]
    ```
-3. **Update GitHub CI** - `.github/workflows/test.yml`:
+3. **Create examples/** with LangChain agent demos:
+   - `README.md` - Setup instructions and usage
+   - `langchain_agent.ipynb` - Interactive Jupyter tutorial
+   - `langchain_agent.py` - CLI agent supporting multiple LLM providers
+4. **Update GitHub CI** - `.github/workflows/test.yml`:
    - Add to `lint` job (install, ruff, mypy, bandit steps)
    - Add new `test-<name>` job
-4. **Update GitHub CD** - `.github/workflows/publish-pypi.yml`:
+5. **Update GitHub CD** - `.github/workflows/publish-pypi.yml`:
    - Add to `workflow_dispatch` options
    - Add `publish-<name>` job
    - Add to `publish-meta-package` needs array
-5. **Update documentation** - README.md, AGENTS.md
+6. **Update documentation** - README.md, AGENTS.md
 
 ## Server Structure
 
@@ -146,7 +151,14 @@ qiskit-<name>-mcp-server/
 ├── tests/
 │   ├── conftest.py      # Fixtures for mocking
 │   └── test_*.py        # Test files
+├── examples/
+│   ├── README.md                # Example documentation
+│   ├── langchain_agent.ipynb    # Jupyter notebook tutorial
+│   └── langchain_agent.py       # CLI agent example
 ├── pyproject.toml
+├── pytest.ini           # (optional) pytest configuration
+├── .env.example         # (optional) Environment variable template
+├── LICENSE              # Apache 2.0 license (copy from root)
 ├── README.md
 └── run_tests.sh
 ```

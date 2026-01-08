@@ -100,10 +100,15 @@ Each MCP server follows this standard structure:
 │   ├── unit/                    # Unit tests (optional subdirectory)
 │   ├── integration/             # Integration tests (optional subdirectory)
 │   └── test_*.py                # Test files
-├── examples/                    # Example usage (contains .env files)
+├── examples/
+│   ├── README.md                # MCP server example documentation
+│   ├── langchain_agent.ipynb    # Interactive tutorial with step-by-step examples
+│   └── langchain_agent.py       # Command-line agent with multiple LLM provider support
 ├── pyproject.toml               # Project metadata & dependencies
+├── pytest.ini                   # pytest configuration (optional)
+├── LICENSE                      # Apache 2.0 license (copy from root)
 ├── README.md                    # Server-specific documentation
-├── .env.example                 # Environment variable template
+├── .env.example                 # Environment variable template (optional)
 └── run_tests.sh                 # Test execution script
 ```
 
@@ -157,10 +162,10 @@ Each MCP server follows this standard structure:
 **Tools Provided**:
 | Tool | Description |
 |------|-------------|
-| `qca_get_completion` | Get code completion for quantum code prompts |
-| `qca_get_rag_completion` | RAG-based completion with documentation context |
-| `qca_accept_completion` | Mark a completion as accepted (telemetry) |
-| `qca_accept_model_disclaimer` | Accept disclaimer for a model |
+| `get_completion_tool` | Get code completion for quantum code prompts |
+| `get_rag_completion_tool` | RAG-based completion with documentation context |
+| `accept_completion_tool` | Mark a completion as accepted (telemetry) |
+| `accept_model_disclaimer_tool` | Accept disclaimer for a model |
 
 **Resources Provided**:
 | Resource URI | Description |
@@ -235,6 +240,7 @@ Each MCP server follows this standard structure:
 | `ai_linear_function_synthesis_tool` | AI synthesis for Linear Function circuits (CX, SWAP; up to 9 qubits) |
 | `ai_permutation_synthesis_tool` | AI synthesis for Permutation circuits (SWAP; 27, 33, 65 qubits) |
 | `ai_pauli_network_synthesis_tool` | AI synthesis for Pauli Network circuits (up to 6 qubits) |
+| `hybrid_ai_transpile_tool` | End-to-end hybrid transpilation combining Qiskit heuristics with AI passes |
 
 **Environment Variables**:
 - `QISKIT_IBM_TOKEN`: IBM Quantum API token (required)
@@ -316,7 +322,7 @@ AI Assistant → MCP Client → transpile_circuit_tool
 
 ### Qiskit Code Assistant Server
 ```
-AI Assistant → MCP Client → qca_get_completion tool
+AI Assistant → MCP Client → get_completion_tool
                                   ↓
                             qca.py (async functions)
                                   ↓
@@ -461,6 +467,102 @@ AI Assistant → MCP Client → create_*_env_tool → start_training_tool
    - Lint with `ruff check`
    - Type check with `mypy src/`
    - All checks must pass before committing
+
+### Security Best Practices
+
+When developing MCP servers that handle quantum computing resources:
+
+1. **Credential Management**:
+   - Never hardcode API tokens or credentials in source code
+   - Use environment variables (`QISKIT_IBM_TOKEN`) or secure credential files
+   - Support fallback to saved credentials (`~/.qiskit/qiskit-ibm.json`)
+   - Never log or expose credentials in error messages or debug output
+
+2. **Input Validation**:
+   - Validate all circuit inputs before processing (size, format, qubit count)
+   - Enforce configurable limits (`QISKIT_MCP_MAX_QUBITS`, `QISKIT_MCP_MAX_GATES`)
+   - Sanitize QASM strings before parsing
+   - Reject malformed or suspicious inputs early
+
+3. **API Security**:
+   - Use HTTPS for all external API calls
+   - Implement proper error handling without leaking sensitive information
+   - Handle authentication failures gracefully
+   - Rate limit awareness for IBM Quantum API calls
+
+4. **Testing Security**:
+   - Never use real credentials in unit tests
+   - Mock all external service calls
+   - Test error paths and edge cases
+   - Verify credential handling doesn't expose sensitive data
+
+
+### Testing Strategy
+
+Comprehensive testing ensures MCP server reliability:
+
+1. **Test Organization**:
+   ```
+   tests/
+   ├── conftest.py           # Shared fixtures and mocks
+   ├── unit/                  # Fast, isolated unit tests
+   ├── integration/           # Tests with mocked external services
+   └── test_*.py              # Test files (pytest auto-discovery)
+   ```
+
+2. **Unit Tests**:
+   - Test individual functions in isolation
+   - Mock all external dependencies
+   - Fast execution (no network calls)
+   - Target 65%+ code coverage
+
+3. **Integration Tests** (marked with `@pytest.mark.integration`):
+   - Test tool and resource interactions
+   - Use mocked IBM Quantum services
+   - Verify end-to-end data flow
+   - Can be skipped with `pytest -m "not integration"`
+
+4. **Common Fixtures** (in `conftest.py`):
+   ```python
+   @pytest.fixture
+   def mock_runtime_service():
+       """Mock QiskitRuntimeService with fake backends and jobs."""
+       ...
+
+   @pytest.fixture
+   def mock_env_vars():
+       """Set test environment variables."""
+       ...
+
+   @pytest.fixture(autouse=True)
+   def reset_service():
+       """Reset global service state between tests."""
+       ...
+   ```
+
+5. **Async Testing Pattern**:
+   ```python
+   @pytest.mark.asyncio
+   async def test_async_tool(mock_service):
+       """Test async MCP tool."""
+       result = await my_tool_function(params)
+       assert result["status"] == "success"
+   ```
+
+6. **Running Tests**:
+   ```bash
+   # All tests
+   ./run_tests.sh
+
+   # Unit tests only
+   uv run pytest -m "not integration"
+
+   # With coverage
+   uv run pytest --cov=src --cov-report=html
+
+   # Specific test file
+   uv run pytest tests/test_server.py -v
+   ```
 
 ### Adding New Features
 
@@ -807,7 +909,11 @@ qiskit-mcp-servers/
 │   │   ├── test_transpiler.py
 │   │   └── test_circuit_serialization.py
 │   ├── examples/
+│   │   ├── README.md
+│   │   ├── langchain_agent.ipynb
+│   │   └── langchain_agent.py
 │   ├── pyproject.toml
+│   ├── LICENSE
 │   ├── README.md
 │   └── run_tests.sh
 ├── qiskit-code-assistant-mcp-server/
@@ -821,7 +927,12 @@ qiskit-mcp-servers/
 │   │   ├── conftest.py
 │   │   └── test_*.py
 │   ├── examples/
+│   │   ├── README.md
+│   │   ├── langchain_agent.ipynb
+│   │   └── langchain_agent.py
 │   ├── pyproject.toml
+│   ├── pytest.ini
+│   ├── LICENSE
 │   ├── README.md
 │   └── run_tests.sh
 ├── qiskit-ibm-runtime-mcp-server/
@@ -833,7 +944,12 @@ qiskit-mcp-servers/
 │   │   ├── conftest.py
 │   │   └── test_*.py
 │   ├── examples/
+│   │   ├── README.md
+│   │   ├── langchain_agent.ipynb
+│   │   └── langchain_agent.py
 │   ├── pyproject.toml
+│   ├── pytest.ini
+│   ├── LICENSE
 │   ├── README.md
 │   └── run_tests.sh
 ├── qiskit-ibm-transpiler-mcp-server/
@@ -849,7 +965,12 @@ qiskit-mcp-servers/
 │   │   ├── qasm/                        # Test QASM files
 │   │   └── utils/                       # Test helpers
 │   ├── examples/
+│   │   ├── README.md
+│   │   ├── langchain_agent.ipynb
+│   │   └── langchain_agent.py
 │   ├── pyproject.toml
+│   ├── pytest.ini
+│   ├── LICENSE
 │   ├── README.md
 │   └── run_tests.sh
 ├── qiskit-gym-mcp-server/

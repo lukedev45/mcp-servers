@@ -739,7 +739,11 @@ qiskit-mcp-servers/
 │   │   ├── test_transpiler.py
 │   │   └── test_circuit_serialization.py
 │   ├── examples/
+│   │   ├── README.md
+│   │   ├── langchain_agent.ipynb
+│   │   └── langchain_agent.py
 │   ├── pyproject.toml
+│   ├── pytest.ini
 │   ├── README.md
 │   └── run_tests.sh
 ├── qiskit-code-assistant-mcp-server/
@@ -753,7 +757,11 @@ qiskit-mcp-servers/
 │   │   ├── conftest.py
 │   │   └── test_*.py
 │   ├── examples/
+│   │   ├── README.md
+│   │   ├── langchain_agent.ipynb
+│   │   └── langchain_agent.py
 │   ├── pyproject.toml
+│   ├── pytest.ini
 │   ├── README.md
 │   └── run_tests.sh
 ├── qiskit-ibm-runtime-mcp-server/
@@ -765,7 +773,11 @@ qiskit-mcp-servers/
 │   │   ├── conftest.py
 │   │   └── test_*.py
 │   ├── examples/
+│   │   ├── README.md
+│   │   ├── langchain_agent.ipynb
+│   │   └── langchain_agent.py
 │   ├── pyproject.toml
+│   ├── pytest.ini
 │   ├── README.md
 │   └── run_tests.sh
 ├── qiskit-ibm-transpiler-mcp-server/
@@ -781,7 +793,11 @@ qiskit-mcp-servers/
 │   │   ├── qasm/                        # Test QASM files
 │   │   └── utils/                       # Test helpers
 │   ├── examples/
+│   │   ├── README.md
+│   │   ├── langchain_agent.ipynb
+│   │   └── langchain_agent.py
 │   ├── pyproject.toml
+│   ├── pytest.ini
 │   ├── README.md
 │   └── run_tests.sh
 ├── src/

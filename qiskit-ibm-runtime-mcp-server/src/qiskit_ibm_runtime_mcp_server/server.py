@@ -216,7 +216,9 @@ async def find_optimal_qubit_chains_tool(
         - Identify high-fidelity qubit paths for state transfer
         - Optimize qubit selection for 1D physics simulations
     """
-    return await find_optimal_qubit_chains(backend_name, chain_length, num_results, metric)
+    return await find_optimal_qubit_chains(
+        backend_name, chain_length, num_results, metric
+    )
 
 
 @mcp.tool()

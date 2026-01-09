@@ -150,6 +150,7 @@ from qiskit_ibm_runtime_mcp_server.ibm_runtime import (
     get_backend_properties,
     get_coupling_map,
     find_optimal_qubit_chains,
+    find_optimal_qv_qubits,
     list_my_jobs,
     get_job_status,
     cancel_job
@@ -167,9 +168,13 @@ print(f"Available backends: {backends['total_backends']}")
 backend = least_busy_backend.sync()
 print(f"Least busy: {backend['backend_name']}")
 
-# Find optimal qubit chains for experiments
+# Find optimal qubit chains for linear experiments
 chains = find_optimal_qubit_chains.sync(backend['backend_name'], chain_length=5)
 print(f"Best chain: {chains['chains'][0]['qubits']}")
+
+# Find optimal qubits for Quantum Volume experiments
+qv_qubits = find_optimal_qv_qubits.sync(backend['backend_name'], num_qubits=5)
+print(f"Best QV subgraph: {qv_qubits['subgraphs'][0]['qubits']}")
 
 # Works in Jupyter notebooks (handles nested event loops automatically)
 jobs = list_my_jobs.sync(limit=5)
@@ -187,7 +192,8 @@ from qiskit_ibm_runtime_mcp_server.ibm_runtime import (
     least_busy_backend,
     get_backend_properties,
     get_coupling_map,
-    find_optimal_qubit_chains
+    find_optimal_qubit_chains,
+    find_optimal_qv_qubits
 )
 
 # Load environment variables (includes QISKIT_IBM_TOKEN)
@@ -202,7 +208,8 @@ agent = dspy.ReAct(
         least_busy_backend.sync,
         get_backend_properties.sync,
         get_coupling_map.sync,  # Works with fake backends too (no credentials needed)
-        find_optimal_qubit_chains.sync  # Find best qubit chains for experiments
+        find_optimal_qubit_chains.sync,  # Find best linear qubit chains
+        find_optimal_qv_qubits.sync  # Find best qubits for Quantum Volume
     ]
 )
 
@@ -294,6 +301,37 @@ with real-time calibration data. Essential for experiments requiring linear qubi
 - Plan linear qubit layouts for error correction experiments
 - Identify high-fidelity qubit paths for state transfer
 - Optimize qubit selection for 1D physics simulations
+
+#### `find_optimal_qv_qubits(backend_name, num_qubits, num_results, metric)`
+Find optimal qubit subgraphs for Quantum Volume experiments.
+
+Unlike linear chains, Quantum Volume benefits from densely connected qubit sets where
+qubits can interact with minimal SWAP operations. This tool finds connected subgraphs
+and ranks them by connectivity and calibration quality.
+
+**Parameters:**
+- `backend_name`: Name of the backend (e.g., `ibm_brisbane`)
+- `num_qubits`: Number of qubits in the subgraph (default: 5, range: 2-10)
+- `num_results`: Number of top subgraphs to return (default: 5, max: 20)
+- `metric`: Scoring metric to optimize:
+  - `qv_optimized`: Balanced scoring for QV (connectivity + errors + coherence) (default)
+  - `connectivity`: Maximize internal edges and minimize path lengths
+  - `gate_error`: Minimize total two-qubit gate errors on internal edges
+
+**Returns:** Ranked subgraphs with detailed metrics:
+- `qubits`: List of qubit indices in the subgraph (sorted)
+- `score`: Total score (lower is better)
+- `internal_edges`: Number of edges within the subgraph
+- `connectivity_ratio`: internal_edges / max_possible_edges
+- `average_path_length`: Mean shortest path between qubit pairs
+- `qubit_details`: T1, T2, readout_error for each qubit
+- `edge_errors`: Two-qubit gate error for each internal edge
+
+**Use cases:**
+- Select optimal qubits for Quantum Volume experiments
+- Find densely connected regions for random circuit sampling
+- Identify high-quality qubit clusters for variational algorithms
+- Plan qubit allocation for algorithms requiring all-to-all connectivity
 
 #### `list_my_jobs(limit: int = 10)`
 Get list of recent jobs from your account.

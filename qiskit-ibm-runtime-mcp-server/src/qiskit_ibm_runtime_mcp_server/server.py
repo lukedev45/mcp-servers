@@ -33,9 +33,11 @@ from qiskit_mcp_server.circuit_serialization import CircuitFormat
 
 from qiskit_ibm_runtime_mcp_server.ibm_runtime import (
     DDSequenceType,
+    QVScoringMetric,
     ScoringMetric,
     cancel_job,
     find_optimal_qubit_chains,
+    find_optimal_qv_qubits,
     get_backend_calibration,
     get_backend_properties,
     get_bell_state_circuit,
@@ -215,6 +217,51 @@ async def find_optimal_qubit_chains_tool(
         - Optimize qubit selection for 1D physics simulations
     """
     return await find_optimal_qubit_chains(backend_name, chain_length, num_results, metric)
+
+
+@mcp.tool()
+async def find_optimal_qv_qubits_tool(
+    backend_name: str,
+    num_qubits: int = 5,
+    num_results: int = 5,
+    metric: QVScoringMetric = "qv_optimized",
+) -> dict[str, Any]:
+    """Find optimal qubit subgraphs for Quantum Volume experiments.
+
+    Unlike linear chains, Quantum Volume benefits from densely connected qubit sets
+    where qubits can interact with minimal SWAP operations. This tool finds
+    connected subgraphs and ranks them by connectivity and calibration quality.
+
+    Args:
+        backend_name: Name of the backend (e.g., 'ibm_brisbane')
+        num_qubits: Number of qubits in the subgraph (default: 5, range: 2-10)
+        num_results: Number of top subgraphs to return (default: 5, max: 20)
+        metric: Scoring metric to optimize:
+            - "qv_optimized": Balanced scoring for QV (connectivity + errors + coherence)
+            - "connectivity": Maximize internal edges and minimize path lengths
+            - "gate_error": Minimize total two-qubit gate errors on internal edges
+
+    Returns:
+        Ranked subgraphs with detailed metrics:
+        - subgraphs: List of subgraph results, each containing:
+            - rank: Position in ranking (1 = best)
+            - qubits: List of qubit indices in the subgraph (sorted)
+            - score: Total score (lower is better)
+            - internal_edges: Number of edges within the subgraph
+            - connectivity_ratio: internal_edges / max_possible_edges
+            - average_path_length: Mean shortest path between qubit pairs
+            - qubit_details: T1, T2, readout_error for each qubit
+            - edge_errors: Two-qubit gate error for each internal edge
+        - total_subgraphs_found: Total number of connected subgraphs discovered
+        - faulty_qubits: List of qubit indices excluded from subgraphs
+
+    Use cases:
+        - Select optimal qubits for Quantum Volume experiments
+        - Find densely connected regions for random circuit sampling
+        - Identify high-quality qubit clusters for variational algorithms
+        - Plan qubit allocation for algorithms requiring all-to-all connectivity
+    """
+    return await find_optimal_qv_qubits(backend_name, num_qubits, num_results, metric)
 
 
 @mcp.tool()

@@ -2106,7 +2106,7 @@ async def delete_saved_account(account_name: str = "") -> dict[str, Any]:
 
 
 @with_sync
-async def list_saved_account() -> dict[str, Any]:
+async def list_saved_accounts() -> dict[str, Any]:
     """
     List all IBM Quantum accounts saved on disk.
 

@@ -54,7 +54,7 @@ from qiskit_ibm_runtime_mcp_server.ibm_runtime import (
     least_busy_backend,
     list_backends,
     list_my_jobs,
-    list_saved_account,
+    list_saved_accounts,
     run_sampler,
     setup_ibm_quantum_account,
     usage_info,
@@ -295,7 +295,7 @@ async def delete_saved_account_tool(account_name: str) -> dict[str, Any]:
     """Delete a saved IBM Quantum account from disk.
 
     WARNING: This permanently removes credentials from ~/.qiskit/qiskit-ibm.json.
-    The operation cannot be undone. Use list_saved_account_tool() first to verify
+    The operation cannot be undone. Use list_saved_accounts_tool() first to verify
     the account name before deletion.
 
     Args:
@@ -305,14 +305,14 @@ async def delete_saved_account_tool(account_name: str) -> dict[str, Any]:
 
 
 @mcp.tool()
-async def list_saved_account_tool() -> dict[str, Any]:
+async def list_saved_accounts_tool() -> dict[str, Any]:
     """List all IBM Quantum accounts saved on disk.
 
     Returns account information from ~/.qiskit/qiskit-ibm.json including account names
     and channels. Useful for checking available accounts before initializing the service
     or before deleting an account.
     """
-    return await list_saved_account()
+    return await list_saved_accounts()
 
 
 @mcp.tool()

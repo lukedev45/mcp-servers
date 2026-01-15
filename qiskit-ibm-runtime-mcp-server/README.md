@@ -142,7 +142,7 @@ cancelled_job = await cancel_job("job_id")
 print(f"Cancelled job: {cancelled_job}")
 ```
 
-#### Sync Usage (DSPy, Scripts, Jupyter)
+#### Sync Usage (Scripts, Jupyter)
 
 For frameworks that don't support async operations, all async functions have a `.sync` attribute:
 
@@ -186,40 +186,64 @@ jobs = list_my_jobs.sync(limit=5)
 print(f"Recent jobs: {len(jobs['jobs'])}")
 ```
 
-**DSPy Integration Example:**
+**LangChain Integration Example:**
+
+> **Note:** To run LangChain examples you will need to install the dependencies:
+> ```bash
+> pip install langchain langchain-mcp-adapters langchain-openai python-dotenv
+> ```
+
+**Supported LLM Providers:**
+
+| Provider | Package | Default Model |
+|----------|---------|---------------|
+| OpenAI | `langchain-openai` | gpt-4o |
+| Anthropic | `langchain-anthropic` | claude-sonnet-4-20250514 |
+| Google | `langchain-google-genai` | gemini-2.5-pro |
+| Ollama | `langchain-ollama` | llama3.2 |
 
 ```python
-import dspy
+import asyncio
+import os
+from langchain.agents import create_agent
+from langchain_mcp_adapters.client import MultiServerMCPClient
+from langchain_mcp_adapters.tools import load_mcp_tools
+from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
-from qiskit_ibm_runtime_mcp_server.ibm_runtime import (
-    setup_ibm_quantum_account,
-    list_backends,
-    least_busy_backend,
-    get_backend_properties,
-    get_coupling_map,
-    find_optimal_qubit_chains,
-    find_optimal_qv_qubits
-)
 
-# Load environment variables (includes QISKIT_IBM_TOKEN)
+# Load environment variables (QISKIT_IBM_TOKEN, OPENAI_API_KEY, etc.)
 load_dotenv()
 
-# Use .sync versions for DSPy tools
-agent = dspy.ReAct(
-    YourSignature,
-    tools=[
-        setup_ibm_quantum_account.sync,  # Optional - only if you need to verify setup
-        list_backends.sync,
-        least_busy_backend.sync,
-        get_backend_properties.sync,
-        get_coupling_map.sync,  # Works with fake backends too (no credentials needed)
-        find_optimal_qubit_chains.sync,  # Find best linear qubit chains
-        find_optimal_qv_qubits.sync  # Find best qubits for Quantum Volume
-    ]
-)
+async def main():
+    # Configure MCP client
+    mcp_client = MultiServerMCPClient({
+        "qiskit-ibm-runtime": {
+            "transport": "stdio",
+            "command": "qiskit-ibm-runtime-mcp-server",
+            "args": [],
+            "env": {
+                "QISKIT_IBM_TOKEN": os.getenv("QISKIT_IBM_TOKEN", ""),
+                "QISKIT_IBM_RUNTIME_MCP_INSTANCE": os.getenv("QISKIT_IBM_RUNTIME_MCP_INSTANCE", ""),
+            },
+        }
+    })
 
-result = agent(user_request="What QPUs are available?")
+    # Use persistent session for efficient tool calls
+    async with mcp_client.session("qiskit-ibm-runtime") as session:
+        tools = await load_mcp_tools(session)
+
+        # Create agent with LLM
+        llm = ChatOpenAI(model="gpt-4o", temperature=0)
+        agent = create_agent(llm, tools)
+
+        # Run a query
+        response = await agent.ainvoke("What QPUs are available and which one is least busy?")
+        print(response)
+
+asyncio.run(main())
 ```
+
+For more examples including Jupyter notebooks and multiple LLM providers, see the [examples/](examples/) directory.
 
 
 ## API Reference

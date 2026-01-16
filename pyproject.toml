@@ -37,12 +37,19 @@ qiskit = ["qiskit-mcp-server>=0.1.0"]
 code-assistant = ["qiskit-code-assistant-mcp-server>=0.2.0"]
 runtime = ["qiskit-ibm-runtime-mcp-server>=0.2.0"]
 transpiler = ["qiskit-ibm-transpiler-mcp-server>=0.2.0"]
-# Install all servers (same as default dependencies)
+gym = ["qiskit-gym-mcp-server>=0.1.0"]
+# Install all servers (core + community)
 all = [
     "qiskit-mcp-server>=0.1.0",
     "qiskit-code-assistant-mcp-server>=0.2.0",
     "qiskit-ibm-runtime-mcp-server>=0.3.0",
     "qiskit-ibm-transpiler-mcp-server>=0.2.0",
+    "qiskit-gym-mcp-server>=0.1.0",
+]
+
+# Community servers
+community = [
+    "qiskit-gym-mcp-server>=0.1.0",
 ]
 
 [project.urls]

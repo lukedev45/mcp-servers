@@ -3883,6 +3883,12 @@ all = [
 code-assistant = [
     { name = "qiskit-code-assistant-mcp-server" },
 ]
+community = [
+    { name = "qiskit-gym-mcp-server" },
+]
+gym = [
+    { name = "qiskit-gym-mcp-server" },
+]
 qiskit = [
     { name = "qiskit-mcp-server" },
 ]
@@ -3910,6 +3916,8 @@ requires-dist = [
     { name = "qiskit-code-assistant-mcp-server", editable = "qiskit-code-assistant-mcp-server" },
     { name = "qiskit-code-assistant-mcp-server", marker = "extra == 'all'", editable = "qiskit-code-assistant-mcp-server" },
     { name = "qiskit-code-assistant-mcp-server", marker = "extra == 'code-assistant'", editable = "qiskit-code-assistant-mcp-server" },
+    { name = "qiskit-gym-mcp-server", marker = "extra == 'community'", editable = "qiskit-gym-mcp-server" },
+    { name = "qiskit-gym-mcp-server", marker = "extra == 'gym'", editable = "qiskit-gym-mcp-server" },
     { name = "qiskit-ibm-runtime-mcp-server", editable = "qiskit-ibm-runtime-mcp-server" },
     { name = "qiskit-ibm-runtime-mcp-server", marker = "extra == 'all'", editable = "qiskit-ibm-runtime-mcp-server" },
     { name = "qiskit-ibm-runtime-mcp-server", marker = "extra == 'runtime'", editable = "qiskit-ibm-runtime-mcp-server" },
@@ -3920,7 +3928,7 @@ requires-dist = [
     { name = "qiskit-mcp-server", marker = "extra == 'all'", editable = "qiskit-mcp-server" },
     { name = "qiskit-mcp-server", marker = "extra == 'qiskit'", editable = "qiskit-mcp-server" },
 ]
-provides-extras = ["qiskit", "code-assistant", "runtime", "transpiler", "all"]
+provides-extras = ["qiskit", "code-assistant", "runtime", "transpiler", "gym", "all", "community"]
 
 [package.metadata.requires-dev]
 dev = [

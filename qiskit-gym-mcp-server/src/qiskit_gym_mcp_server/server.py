@@ -26,7 +26,7 @@ Features:
 
 import atexit
 import logging
-import subprocess
+import subprocess  # nosec B404 - subprocess needed for TensorBoard process management
 import time
 from typing import Any, Literal
 
@@ -496,7 +496,7 @@ async def start_tensorboard_tool(port: int = 6006) -> dict[str, Any]:
         }
 
     try:
-        _tb_state.process = subprocess.Popen(
+        _tb_state.process = subprocess.Popen(  # nosec B603 B607
             ["tensorboard", "--logdir", QISKIT_GYM_TENSORBOARD_DIR, "--port", str(port)],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,

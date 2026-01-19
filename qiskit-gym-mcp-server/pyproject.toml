@@ -103,5 +103,7 @@ examples = [
 
 # Bandit security configuration
 [tool.bandit]
-skips = ["B101"]  # Skip assert_used check in tests
+skips = [
+    "B101",  # Skip assert_used check (used for type narrowing)
+]
 exclude_dirs = ["tests", ".venv", "build", "dist"]

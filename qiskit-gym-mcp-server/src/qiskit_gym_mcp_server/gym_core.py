@@ -447,7 +447,7 @@ async def get_environment_info(env_id: str) -> dict[str, Any]:
             if shape is not None:
                 observation_shape = tuple(int(x) for x in shape)
     except Exception:
-        pass
+        pass  # nosec B110 - intentionally ignoring errors; defaults are acceptable
 
     return {
         "status": "success",

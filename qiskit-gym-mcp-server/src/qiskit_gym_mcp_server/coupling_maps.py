@@ -392,7 +392,7 @@ def _get_connected_subgraphs(
         while len(found_subgraphs) < max_subgraphs and attempts < max_attempts:
             attempts += 1
             # Start from random node and grow via BFS
-            start = random.randint(0, num_qubits - 1)
+            start = random.randint(0, num_qubits - 1)  # nosec B311 - not used for security
             nodes = {start}
             frontier = list(adj[start])
             random.shuffle(frontier)

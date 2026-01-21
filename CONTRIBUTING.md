@@ -27,9 +27,13 @@ Before you begin, ensure you have the following installed:
 
 2. **Navigate to the server you want to work on**:
    ```bash
+   cd qiskit-mcp-server
+   # OR
    cd qiskit-code-assistant-mcp-server
    # OR
    cd qiskit-ibm-runtime-mcp-server
+   # OR
+   cd qiskit-ibm-transpiler-mcp-server
    # OR
    cd qiskit-gym-mcp-server
    ```
@@ -47,9 +51,13 @@ Before you begin, ensure you have the following installed:
 
 5. **Run the server locally**:
    ```bash
+   uv run qiskit-mcp-server
+   # OR
    uv run qiskit-code-assistant-mcp-server
    # OR
    uv run qiskit-ibm-runtime-mcp-server
+   # OR
+   uv run qiskit-ibm-transpiler-mcp-server
    # OR
    uv run qiskit-gym-mcp-server
    ```

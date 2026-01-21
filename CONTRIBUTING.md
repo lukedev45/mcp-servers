@@ -30,6 +30,8 @@ Before you begin, ensure you have the following installed:
    cd qiskit-code-assistant-mcp-server
    # OR
    cd qiskit-ibm-runtime-mcp-server
+   # OR
+   cd qiskit-gym-mcp-server
    ```
 
 3. **Install dependencies**:
@@ -48,6 +50,8 @@ Before you begin, ensure you have the following installed:
    uv run qiskit-code-assistant-mcp-server
    # OR
    uv run qiskit-ibm-runtime-mcp-server
+   # OR
+   uv run qiskit-gym-mcp-server
    ```
 
 6. **Test interactively with MCP Inspector** (requires Node.js):
@@ -168,8 +172,11 @@ This is a monorepo with multiple independent MCP servers:
 
 ```
 qiskit-mcp-servers/
+├── qiskit-mcp-server/                   # Core Qiskit server with circuit utilities
 ├── qiskit-code-assistant-mcp-server/    # AI code completion server
 ├── qiskit-ibm-runtime-mcp-server/       # IBM Quantum cloud services
+├── qiskit-ibm-transpiler-mcp-server/    # AI-powered transpilation
+├── qiskit-gym-mcp-server/               # RL-based circuit synthesis (community)
 ├── README.md                            # Main documentation
 ├── CONTRIBUTING.md                      # This file
 ├── AGENTS.md                            # AI assistant guidance

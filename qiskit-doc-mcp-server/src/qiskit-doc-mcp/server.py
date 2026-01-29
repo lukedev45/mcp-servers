@@ -50,24 +50,6 @@ def get_sdk_module_docs(module: str) -> dict:
         return {"error": f"Module '{module}' not found. Use list_sdk_modules() to see available modules."}
     return {"module": module, "documentation": docs}
 
-
-@mcp.tool()
-def get_addon_docs(addon: str) -> dict:
-    """
-    Get documentation for a Qiskit addon or tutorial.
-    
-    Args:
-        addon: Addon name (e.g., 'addon-opt-mapper', 'addon-vqe', 'addon-qpe')
-    
-    Returns:
-        Complete addon documentation including use cases and implementation examples.
-    """
-    docs = get_pattern_docs(addon)
-    if docs is None:
-        return {"error": f"Addon '{addon}' not found. Use list_addons() to see available addons."}
-    return {"addon": addon, "documentation": docs}
-
-
 @mcp.tool()
 def get_guide(guide: str) -> dict:
     """
@@ -79,7 +61,7 @@ def get_guide(guide: str) -> dict:
     Returns:
         Complete guide documentation with best practices and implementation patterns.
     """
-    docs = get_style_docs(guide)
+    docs = get_guide_docs(guide)
     if docs is None:
         return {"error": f"Guide '{guide}' not found. Use list_guides() to see available guides."}
     return {"guide": guide, "documentation": docs}

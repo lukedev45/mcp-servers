@@ -82,27 +82,7 @@ def get_component_docs(component: str) -> Optional[str]:
     logger.info(f"Fetching component docs for {component} from {url}")
     return fetch_text(url)
 
-
-def get_pattern_docs(pattern: str) -> Optional[str]:
-    """
-    Fetch documentation for a Qiskit addon or tutorial pattern.
-    
-    Args:
-        pattern: Pattern name (e.g., 'addon-opt-mapper', 'addon-vqe')
-        
-    Returns:
-        The documentation content or None if not found
-    """
-    if pattern not in QISKIT_ADDON_MODULES:
-        return None
-    
-    path = QISKIT_ADDON_MODULES[pattern]
-    url = f"{QISKIT_DOCS_BASE}{path}"
-    logger.info(f"Fetching pattern docs for {pattern} from {url}")
-    return fetch_text(url)
-
-
-def get_style_docs(style: str) -> Optional[str]:
+def get_guide_docs(style: str) -> Optional[str]:
     """
     Fetch documentation for a Qiskit guide or best practice.
     
@@ -141,28 +121,6 @@ def search_qiskit_docs(query: str, module: str = "documentation") -> list[dict]:
     Returns:
         List of relevant documentation entries with name and description
     """
-    
-    # Search in SDK modules
-    # for module, path in QISKIT_MODULES.items():
-    #     if query.lower() in module.lower():
-    #         results.append({
-    #             "type": "sdk_module",
-    #             "name": module,
-    #             "path": path,
-    #             "url": f"{QISKIT_SDK_DOCS}{path}"
-    #         })
-    
-    # Search in addons
-    # for addon, path in QISKIT_ADDON_MODULES.items():
-    #     if query.lower() in addon.lower():
-    #         results.append({
-    #             "type": "addon",
-    #             "name": addon,
-    #             "path": path,
-    #             "url": f"{QISKIT_DOCS_BASE}{path}"
-    #         })
-
-    # Search everything
 
     url = f"{BASE_URL}{SEARCH_PATH}?query={query}&module={module}"
     logger.info(f"Querying from {query} which gives {url} from {module}")
